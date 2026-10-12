@@ -1,0 +1,214 @@
+.student-shell {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 2rem 1.25rem;
+  background: var(--blue);
+  gap: 1.5rem;
+}
+
+/* Esquina superior derecha: idioma + tema. La pantalla de entrada es
+   azul marino en los DOS temas (es el diseño, no una superficie de la
+   app), así que aquí fijamos los tokens claros: si no, en tema oscuro
+   los controles quedarían oscuros sobre azul oscuro. */
+.student-top {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  display: flex;
+  align-items: center;
+  gap: .45rem;
+  --bg: #f4f6f9;
+  --surface: #ffffff;
+  --border: #e2e8f0;
+  --gray-bg: #f1f5f9;
+  --gray-200: #e2e8f0;
+  --gray-600: #475569;
+  --txt: #142843;
+}
+
+.student-hero {
+  text-align: center;
+  color: var(--white);
+}
+
+.student-brand {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 64px;
+  height: 64px;
+  border-radius: 18px;
+  background: var(--orange);
+  font-family: var(--font-head);
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--white);
+  margin-bottom: 1rem;
+}
+
+.student-title {
+  font-family: var(--font-head);
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--white);
+  margin-bottom: .4rem;
+}
+
+.student-sub {
+  color: rgba(255,255,255,.65);
+  font-size: .95rem;
+}
+
+.student-card {
+  background: var(--surface);
+  border-radius: 20px;
+  padding: 2rem 1.75rem;
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 20px 60px rgba(0,0,0,.3);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.code-label {
+  font-family: var(--font-head);
+  font-size: .75rem;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--txt-muted);
+}
+
+.code-inputs {
+  display: flex;
+  gap: .6rem;
+}
+
+.code-input {
+  width: 52px;
+  height: 64px;
+  border: 2px solid var(--gray-200);
+  border-radius: 12px;
+  text-align: center;
+  font-family: var(--font-head);
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--txt);
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+  background: var(--gray-bg);
+}
+
+.code-input:focus {
+  border-color: var(--orange);
+  background: var(--accent-tint);
+  box-shadow: 0 0 0 3px rgba(180,83,9,.25);
+}
+
+.code-input-error {
+  border-color: var(--red) !important;
+  background: var(--red-bg) !important;
+}
+
+.student-error {
+  color: var(--bad-soft-txt);
+  font-size: .82rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.student-privacidad {
+  margin: .9rem 0 0;
+  font-size: .74rem;
+  line-height: 1.35;
+  color: var(--txt-muted);
+  text-align: center;
+}
+
+.student-btn {
+  width: 100%;
+  padding: .9rem;
+  border-radius: 12px;
+  border: 2px solid var(--gray-200);
+  background: var(--gray-bg);
+  color: var(--txt-muted);
+  font-family: var(--font-body);
+  font-size: .95rem;
+  font-weight: 700;
+  cursor: not-allowed;
+  transition: all .2s ease;
+}
+
+.student-btn-ready {
+  border-color: var(--orange);
+  background: var(--orange);
+  color: var(--white);
+  cursor: pointer;
+}
+
+.student-btn-ready:hover {
+  background: #d9750f;
+}
+
+.student-btn:disabled {
+  opacity: .6;
+}
+
+.student-footer {
+  color: rgba(255,255,255,.5) !important;
+  font-size: .8rem;
+  text-align: center;
+}
+
+.student-teacher-link {
+  color: rgba(255,255,255,.45);
+  font-size: .78rem;
+  text-decoration: none;
+  border-bottom: 1px solid rgba(255,255,255,.2);
+  transition: color .15s;
+}
+.student-teacher-link:hover {
+  color: rgba(255,255,255,.8);
+}
+
+@media (min-width: 700px) {
+  .student-shell {
+    background: linear-gradient(160deg, var(--blue) 60%, #1e3d6e 100%);
+  }
+  .student-title { font-size: 2.5rem; }
+  .code-input { width: 60px; height: 72px; font-size: 2rem; }
+}
+
+/* ── Paso 2: nombre del estudiante ── */
+.student-sala{
+  background:var(--bg); border:1px solid var(--border); border-radius:var(--radius-sm);
+  padding:.7rem .8rem; margin-bottom:.9rem; display:flex; flex-direction:column; gap:.15rem;
+}
+.student-sala strong{ font-size:.95rem; color:var(--txt); }
+.student-sala small{ color:var(--txt-muted); font-size:.78rem; }
+.student-sala .badge{ align-self:flex-start; margin-bottom:.2rem; }
+
+.student-nombre{
+  width:100%; min-height:52px; border:2px solid var(--border); border-radius:var(--radius-sm);
+  padding:.7rem .85rem; font-size:1.05rem; font-family:var(--font-body); color:var(--txt);
+  background:var(--surface);
+}
+.student-nombre:focus{ outline:2px solid var(--accent); outline-offset:1px; border-color:transparent; }
+.student-nota{ font-size:.76rem; color:var(--txt-muted); margin:.5rem 0 .8rem; }
+.student-volver{
+  width:100%; margin-top:.5rem; background:transparent; border:0;
+  color:var(--txt-muted); font-size:.82rem; cursor:pointer; padding:.5rem;
+}
+
+/* Curso y cupo mostrados al estudiante al confirmar la sala */
+.student-curso{
+  display:inline-block; background:var(--accent, #f97316); color:#fff;
+  border-radius:99px; padding:.2rem .7rem; font-size:.8rem; font-weight:700; margin:.15rem 0;
+}
+.student-cupo{ color:var(--txt-muted, var(--gray-400)); font-size:.72rem; }

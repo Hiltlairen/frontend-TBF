@@ -1,0 +1,42 @@
+/* ============================================================
+   ThemeToggle.css — Botón global de tema
+   ============================================================
+   Usa tokens (--surface/--border/--txt), así que el propio botón se
+   ve bien en los dos temas: en claro es una píldora blanca con borde
+   gris y en oscuro una píldora azul oscura. */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  min-height: 34px;
+  padding: .3rem .7rem;
+  border-radius: 99px;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--txt);
+  font-family: var(--font-body);
+  font-size: .78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color .15s ease, background .15s ease, color .15s ease;
+}
+
+.theme-toggle:hover { border-color: var(--accent); color: var(--accent-txt); }
+.theme-toggle:active { transform: scale(.97); }
+
+.theme-toggle:focus-visible {
+  outline: 3px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.theme-toggle-icono-caja { font-size: .95rem; line-height: 1; }
+
+/* Variante de solo icono (para espacios angostos). */
+.theme-toggle-icono { padding: .3rem .45rem; }
+
+/* En pantallas muy angostas el texto sobra: el icono + el title/aria
+   siguen comunicando la acción. */
+@media (max-width: 460px) {
+  .theme-toggle-txt { display: none; }
+  .theme-toggle { padding: .3rem .5rem; }
+}

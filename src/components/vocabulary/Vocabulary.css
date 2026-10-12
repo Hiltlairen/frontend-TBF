@@ -1,0 +1,120 @@
+/* ============================================================
+   Vocabulary.css — Vista tipo hoja de cálculo
+   Libros (pestañas) → Lecciones (columna) → Vocabulario (tabla)
+   Usa solo las variables de color del proyecto.
+   ============================================================ */
+
+.voc-page{ display:flex; flex-direction:column; gap:1rem; min-height:0; }
+
+/* ── Pestañas de libros ── */
+.voc-libros{
+  display:flex; flex-wrap:wrap; gap:.4rem;
+  border-bottom:2px solid var(--border); padding-bottom:.1rem;
+}
+.voc-libro-tab{
+  border:0; background:transparent; cursor:pointer;
+  font-family:var(--font-body); font-size:.9rem; font-weight:700; color:var(--txt-muted);
+  padding:.6rem .9rem; border-radius:var(--radius-sm) var(--radius-sm) 0 0;
+  border-bottom:3px solid transparent; margin-bottom:-2px;
+}
+.voc-libro-tab:hover{ color:var(--txt); background:var(--bg); }
+.voc-libro-tab.activo{ color:var(--accent-txt); border-bottom-color:var(--accent); }
+
+/* ── Cuerpo: columna de lecciones + tabla ── */
+.voc-hoja{
+  display:grid; grid-template-columns:minmax(200px, 280px) 1fr; gap:1rem;
+  align-items:start;
+}
+
+/* Columna vertical de lecciones */
+.voc-lecciones{
+  display:flex; flex-direction:column; gap:.4rem;
+  max-height:70vh; overflow-y:auto; padding-right:.2rem;
+}
+.voc-cargando{ color:var(--txt-muted); font-size:.85rem; padding:.5rem; }
+.voc-leccion{
+  display:flex; align-items:center; gap:.6rem; text-align:left; cursor:pointer;
+  border:1px solid var(--border); background:var(--surface); color:var(--txt);
+  border-radius:var(--radius-sm); padding:.6rem .7rem; font-family:var(--font-body);
+  transition:border-color .12s ease, background .12s ease;
+}
+.voc-leccion:hover{ border-color:var(--accent); }
+.voc-leccion.activa{ border-color:var(--accent); background:var(--accent-tint); }
+.voc-leccion-num{
+  flex-shrink:0; width:34px; height:34px; border-radius:8px;
+  display:grid; place-items:center; font-weight:800; font-size:.82rem;
+  background:var(--bg); color:var(--txt-muted); font-family:var(--font-head);
+}
+.voc-leccion.activa .voc-leccion-num{ background:var(--accent); color:var(--white); }
+.voc-leccion-txt{ min-width:0; display:flex; flex-direction:column; }
+.voc-leccion-txt strong{
+  font-size:.85rem; line-height:1.25;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+}
+.voc-leccion-txt small{ color:var(--txt-muted); font-size:.72rem; }
+
+/* Panel derecho: el vocabulario */
+.voc-detalle{
+  border:1px solid var(--border); border-radius:var(--radius);
+  background:var(--surface); box-shadow:var(--shadow);
+  overflow:hidden; min-height:200px;
+}
+.voc-detalle-cab{
+  display:flex; align-items:flex-start; justify-content:space-between; gap:1rem;
+  padding:.9rem 1rem; border-bottom:1px solid var(--border); background:var(--bg);
+}
+.voc-detalle-cab h3{ margin:0; font-size:1rem; }
+.voc-temas{
+  margin:.3rem 0 0; font-size:.78rem; color:var(--txt-muted); line-height:1.4;
+  max-width:60ch;
+}
+.voc-buscar{
+  flex-shrink:0; width:min(240px, 42vw);
+  border:1px solid var(--border); border-radius:var(--radius-sm);
+  padding:.5rem .7rem; font-size:.82rem; background:var(--surface); color:var(--txt);
+}
+.voc-buscar:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+
+.voc-tabla-scroll{ width:100%; overflow-x:auto; max-height:64vh; }
+.voc-tabla{ width:100%; border-collapse:collapse; font-size:.86rem; }
+.voc-tabla thead th{
+  position:sticky; top:0; z-index:1;
+  text-align:left; background:var(--bg); color:var(--txt-muted);
+  font-weight:700; padding:.6rem .8rem; border-bottom:1px solid var(--border);
+  white-space:nowrap;
+}
+.voc-tabla td{
+  padding:.55rem .8rem; border-bottom:1px solid var(--border); vertical-align:top;
+}
+.voc-tabla tbody tr:last-child td,
+.voc-tabla tbody tr:last-child td{ border-bottom:0; }
+.voc-tabla tbody tr:nth-child(even) td{ background:var(--bg); }
+.voc-col-n{ width:44px; color:var(--txt-muted); text-align:right; font-variant-numeric:tabular-nums; }
+.voc-en{ font-weight:600; }
+.voc-cat{
+  display:inline-block; background:var(--bg); border:1px solid var(--border);
+  border-radius:99px; padding:.15rem .55rem; font-size:.74rem; color:var(--txt-muted);
+}
+
+.voc-vacio{ padding:2.2rem 1.2rem; text-align:center; color:var(--txt-muted); font-size:.9rem; }
+
+/* En pantallas angostas la hoja se apila: lecciones arriba en fila */
+@media (max-width:760px){
+  .voc-hoja{ grid-template-columns:1fr; }
+  .voc-lecciones{
+    flex-direction:row; overflow-x:auto; max-height:none; padding-bottom:.4rem;
+  }
+  .voc-leccion{ flex:0 0 auto; min-width:170px; }
+  .voc-detalle-cab{ flex-direction:column; }
+  .voc-buscar{ width:100%; }
+}
+
+/* ── Modal de agregar (se conserva) ── */
+.modal-overlay {
+  position: fixed; inset: 0; background: rgba(20, 40, 67, .55);
+  display: flex; align-items: center; justify-content: center;
+  padding: 1rem; z-index: 100;
+}
+.modal-card {
+  width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
+}

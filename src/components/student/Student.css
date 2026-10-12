@@ -1,0 +1,7 @@
+
+/* Curso y cupo mostrados al estudiante */
+.student-curso{
+  display:inline-block; background:var(--accent, #f97316); color:#fff;
+  border-radius:99px; padding:.2rem .7rem; font-size:.8rem; font-weight:700; margin:.2rem 0;
+}
+.student-cupo{ color:var(--txt-muted, var(--gray-400)); font-size:.72rem; }

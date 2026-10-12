@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dashboard Docente — English Lessons</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;700&family=Lora:ital@0;1&family=Syne:wght@600;700;800&display=swap"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <!-- Tema antes del primer pintado: sin esto se ve un flash blanco al
+         recargar en tema oscuro, porque React monta un instante después.
+         Debe coincidir con CLAVE_TEMA / temaGuardado() de
+         src/theme/ThemeContext.jsx. -->
+    <script>
+      (function () {
+        try {
+          var guardado = localStorage.getItem('el.tema')
+          var tema = (guardado === 'oscuro' || guardado === 'claro')
+            ? guardado
+            : (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'oscuro' : 'claro')
+          document.documentElement.setAttribute('data-tema', tema)
+          document.documentElement.style.colorScheme = tema === 'oscuro' ? 'dark' : 'light'
+        } catch (e) {
+          document.documentElement.setAttribute('data-tema', 'claro')
+        }
+      })()
+    </script>
+    <div id="root"></div>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

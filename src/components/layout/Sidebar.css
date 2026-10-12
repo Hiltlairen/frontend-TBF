@@ -1,0 +1,147 @@
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  height: 100vh;
+  width: var(--sidebar-w);
+  background: var(--blue);
+  color: var(--white);
+  display: flex;
+  flex-direction: column;
+  padding: 1.1rem .9rem;
+  transform: translateX(-100%);
+  transition: transform .2s ease;
+  z-index: 50;
+}
+
+.sidebar-open { transform: translateX(0); }
+
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,.4);
+  z-index: 40;
+}
+
+.sidebar-brand {
+  display: flex;
+  align-items: center;
+  gap: .6rem;
+  padding: .4rem .3rem 1.2rem;
+  border-bottom: 1px solid rgba(255,255,255,.12);
+  margin-bottom: 1rem;
+}
+
+.sidebar-brand-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: var(--orange);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-head);
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.sidebar-brand strong {
+  font-family: var(--font-head);
+  font-size: .95rem;
+  display: block;
+}
+
+.sidebar-brand-sub {
+  font-size: .72rem;
+  color: rgba(255,255,255,.65);
+}
+
+.sidebar-nav {
+  display: flex;
+  flex-direction: column;
+  gap: .25rem;
+  flex: 1;
+  overflow-y: auto;
+}
+
+.sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: .65rem;
+  padding: .65rem .7rem;
+  border-radius: var(--radius-sm);
+  color: rgba(255,255,255,.85);
+  font-size: .88rem;
+  font-weight: 500;
+}
+
+.sidebar-link:hover { background: rgba(255,255,255,.08); }
+
+.sidebar-link-active {
+  background: var(--orange);
+  color: var(--white);
+  font-weight: 700;
+}
+
+.sidebar-link-disabled {
+  color: rgba(255,255,255,.4);
+  cursor: not-allowed;
+}
+
+.sidebar-icon { width: 1.2rem; text-align: center; }
+
+.sidebar-soon { margin-left: auto; }
+
+.sidebar-footer {
+  padding-top: 1rem;
+  border-top: 1px solid rgba(255,255,255,.12);
+  font-size: .72rem;
+  color: rgba(255,255,255,.5) !important;
+}
+
+@media (min-width: 900px) {
+  .sidebar {
+    transform: translateX(0);
+    position: sticky;
+    top: 0;
+  }
+  .sidebar-overlay { display: none; }
+}
+
+.sidebar-student-link {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .55rem .7rem;
+  border-radius: var(--radius-sm);
+  color: rgba(255,255,255,.5);
+  font-size: .8rem;
+  margin-bottom: .4rem;
+  border: 1px dashed rgba(255,255,255,.15);
+}
+.sidebar-student-link:hover { color: rgba(255,255,255,.85); background: rgba(255,255,255,.06); }
+
+/* ── Usuario en sesión ── */
+.sidebar-usuario{
+  display:flex; align-items:center; gap:.6rem; padding:.7rem .9rem;
+  border-top:1px solid var(--border); margin-top:auto;
+}
+.sidebar-avatar{
+  width:34px; height:34px; border-radius:50%; background:var(--accent); color:#fff;
+  display:grid; place-items:center; font-weight:800; flex-shrink:0; text-transform:uppercase;
+}
+.sidebar-avatar-img{ object-fit:cover; background:none; }
+.sidebar-usuario-txt{ min-width:0; }
+/* El sidebar tiene fondo azul (ver .sidebar arriba); var(--txt) es azul
+   oscuro pensado para fondos claros, así que el nombre quedaba azul
+   sobre azul — prácticamente invisible. Blanco, como el resto del texto
+   del sidebar. */
+.sidebar-usuario-txt strong{ display:block; font-size:.84rem; color:var(--white);
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sidebar-usuario-txt small{ display:block; color:rgba(255,255,255,.65); font-size:.7rem;
+  overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.sidebar-salir{
+  margin:0 .9rem .6rem; min-height:40px; border:1px solid var(--border);
+  background:var(--bg); color:var(--txt); border-radius:var(--radius-sm);
+  cursor:pointer; font-size:.84rem; font-family:var(--font-body);
+}

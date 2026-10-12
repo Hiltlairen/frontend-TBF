@@ -1,0 +1,87 @@
+/* ============================================================
+   Review.css — Sala de curaduría
+   ============================================================ */
+.rev-page{ display:flex; flex-direction:column; gap:1rem; }
+.rev-cab{ display:flex; align-items:flex-start; justify-content:space-between; gap:1rem; flex-wrap:wrap; }
+.rev-cab h2{ font-family:var(--font-head); margin:0 0 .2rem; color:var(--txt); }
+.rev-cab .muted{ margin:0; font-size:.86rem; }
+.rev-pendientes{ flex-shrink:0; }
+
+.rev-filtros{ display:flex; gap:.4rem; flex-wrap:wrap; }
+.rev-filtros button{
+  border:1px solid var(--border); background:var(--surface); color:var(--txt);
+  border-radius:999px; padding:.4rem .85rem; font-size:.82rem; cursor:pointer;
+  min-height:38px; display:inline-flex; align-items:center; gap:.4rem;
+}
+.rev-filtros button.activo{ background:var(--chip-bg); color:var(--chip-txt); border-color:transparent; }
+.rev-filtros button span{
+  background:rgba(0,0,0,.1); border-radius:99px; padding:0 .4rem; font-size:.72rem;
+}
+.rev-filtros button.activo span{ background:rgba(255,255,255,.2); }
+
+.rev-layout{ display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1.2fr); gap:1rem; align-items:start; }
+
+.rev-lista{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.45rem; }
+.rev-vacio{ color:var(--txt-muted); font-size:.86rem; padding:1rem; text-align:center;
+  border:1px dashed var(--border); border-radius:var(--radius); }
+.rev-item{
+  width:100%; display:flex; align-items:center; gap:.65rem; text-align:left;
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:.65rem .75rem; cursor:pointer; font-family:var(--font-body); color:var(--txt);
+  min-height:60px;
+}
+.rev-item.sel{ border-color:var(--accent); background:var(--accent-tint); }
+.rev-icono{ font-size:1.3rem; flex-shrink:0; }
+.rev-item-txt{ flex:1; min-width:0; }
+.rev-item-txt strong{ display:block; font-size:.88rem; overflow:hidden;
+  text-overflow:ellipsis; white-space:nowrap; }
+.rev-item-txt small{ color:var(--txt-muted); font-size:.74rem; }
+.rev-estado{ font-size:.68rem; border-radius:99px; padding:.15rem .5rem; flex-shrink:0; text-transform:uppercase; }
+.rev-pendiente{ background:var(--pend-bg); color:var(--warn-txt); }
+.rev-aprobado,.rev-corregido{ background:var(--green-bg); color:var(--ok-soft-txt); }
+.rev-rechazado{ background:var(--red-bg); color:var(--bad-soft-txt); }
+
+.rev-detalle{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:1rem; position:sticky; top:calc(var(--topbar-h) + 1rem);
+}
+.rev-detalle h3{ font-family:var(--font-head); margin:0 0 .2rem; }
+.rev-contenido{ margin:.9rem 0; }
+.rev-vocab{ display:grid; grid-template-columns:auto 1fr; gap:.3rem .8rem; margin:0; font-size:.88rem; }
+.rev-vocab dt{ color:var(--txt-muted); font-size:.78rem; }
+.rev-vocab dd{ margin:0; font-weight:600; }
+.rev-texto,.rev-cerrado blockquote{
+  margin:.6rem 0 0; padding:.6rem .8rem; background:var(--bg);
+  border-left:3px solid var(--accent); border-radius:6px; font-size:.88rem; line-height:1.5;
+}
+.rev-json{
+  max-height:280px; overflow:auto; background:#0f172a; color:#e2e8f0;
+  padding:.7rem; border-radius:8px; font-size:.7rem; line-height:1.4;
+}
+
+.rev-acciones{ display:flex; flex-direction:column; gap:.7rem; margin-top:.9rem;
+  border-top:1px solid var(--border); padding-top:.9rem; }
+.rev-campo{ display:flex; flex-direction:column; gap:.3rem; }
+.rev-campo>span{ font-size:.78rem; font-weight:600; color:var(--txt-muted); }
+.rev-campo input,.rev-campo textarea{
+  border:1px solid var(--border); border-radius:var(--radius-sm); padding:.6rem .7rem;
+  font-family:var(--font-body); font-size:.92rem; color:var(--txt); background:var(--surface);
+  resize:vertical;
+}
+.rev-campo input:focus,.rev-campo textarea:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+
+.rev-botones{ display:grid; grid-template-columns:1fr 1fr; gap:.5rem; }
+.rev-btn{
+  min-height:46px; border:0; border-radius:var(--radius-sm); cursor:pointer;
+  font-weight:700; font-size:.92rem; font-family:var(--font-body);
+}
+.rev-btn-ok{ background:var(--green); color:#fff; }
+.rev-btn-no{ background:var(--red-bg); color:var(--bad-soft-txt); }
+.rev-btn:disabled{ opacity:.55; cursor:not-allowed; }
+
+.rev-cerrado{ margin-top:.9rem; border-top:1px solid var(--border); padding-top:.8rem; font-size:.86rem; }
+
+@media (max-width:860px){
+  .rev-layout{ grid-template-columns:1fr; }
+  .rev-detalle{ position:static; }
+}

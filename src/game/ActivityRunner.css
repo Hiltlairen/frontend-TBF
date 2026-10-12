@@ -1,0 +1,1061 @@
+/* ============================================================
+   ActivityRunner.css — Interior del celular
+   ------------------------------------------------------------
+   ESTILO: app móvil de idiomas. Todo lo que hace sentir viva la
+   interfaz está aquí: profundidad de los botones, rebote al acertar,
+   sacudida al fallar, entrada escalonada de las opciones y la hoja
+   de resultado con física de resorte.
+
+   ESTRUCTURA (igual para las 11 actividades):
+     .ar-raiz     → contenedor a pantalla completa
+       .ar-shell  → marco de la actividad (3 zonas)
+         .ar-top    zona 1: salir + progreso + restantes
+         .ar-cuerpo zona 2: contenido, único bloque con scroll
+         .ar-pie    zona 3: botón principal, siempre visible
+         .ar-hoja   capa de resultado que sube desde abajo
+
+   Todos los objetivos táctiles tienen al menos 44px de alto.
+
+   PALETA: sólo las variables del proyecto (ver index.css). El juego
+   NO se retematiza: dentro del celular siempre valen los valores
+   claros (ver el bloque "EL JUEGO NO SE RETEMATIZA" en index.css).
+
+   ── CÓMO SE SIENTE ──────────────────────────────────────────
+   · Cada tarjeta tocable es un botón "de 3 dimensiones": tiene una
+     pata de --g-depth abajo que se acorta al presionar, así el dedo
+     recibe respuesta inmediata aunque el toque sea rápido.
+   · Acertar = rebote + destello verde.  Fallar = sacudida + rojo.
+   · Las listas entran escalonadas (una tras otra) con
+     animation-delay por :nth-child. Es CSS puro: no toca una sola
+     línea de la lógica de las actividades.
+   · El botón principal pasa de gris apagado a color pleno cuando la
+     respuesta ya es válida — la señal de "ya puedes comprobar".
+   · prefers-reduced-motion apaga TODO el movimiento.
+   ============================================================ */
+
+/* ════════════════════════════════════════════════════════════
+   SISTEMA DE DISEÑO
+   Se declara en las dos raíces posibles (.ar-raiz es el camino
+   normal; la pantalla de error devuelve sólo .ar-shell) para que
+   todo lo de adentro herede la misma escala.
+   ════════════════════════════════════════════════════════════ */
+.ar-raiz,
+.ar-shell{
+  /* Radios */
+  --g-r-sm: 10px;
+  --g-r-md: 14px;
+  --g-r-lg: 20px;
+
+  /* Profundidad: la "pata" inferior de los botones. El color de esa
+     pata lo pone cada estado; éste es el neutro por defecto. */
+  --g-depth: 4px;
+  --g-depth-press: 2px;
+  --g-edge: #cbd5e1;
+
+  /* Curvas y duraciones: una sola familia de movimiento para que todo
+     se sienta de la misma app. --g-spring sobrepasa un poco (rebote). */
+  --g-fast: .12s;
+  --g-base: .24s;
+  --g-slow: .4s;
+  --g-spring: cubic-bezier(.34,1.56,.64,1);
+  --g-out: cubic-bezier(.22,1,.36,1);
+
+  /* Estados del juego (valores claros, siempre) */
+  --g-ink: #142843;
+  --g-muted: #64748b;
+  --g-line: #e2e8f0;
+  --g-surface: #ffffff;
+  --g-page: #f4f6f9;
+  --g-brand: #b45309;
+  --g-brand-hi: #d97706;
+  --g-brand-edge: #92400e;
+
+  /* Por estado: color de texto/borde, relleno suave, y la PATA (un tono
+     más oscuro, para que el borde inferior se lea como sombra y no como
+     un borde más). */
+  --g-ok: #15803d;   --g-ok-bg: #dcfce7;   --g-ok-pata: #166534;
+  --g-bad: #b91c1c;  --g-bad-bg: #fee2e2;  --g-bad-pata: #7f1d1d;
+  --g-sel: #b45309;  --g-sel-bg: #fff7ed;
+  --g-sel-borde: #f59e0b;  --g-sel-pata: #c2410c;
+
+  --g-sheet: 0 -10px 34px rgba(11,18,32,.16);
+}
+
+/* ════════════════════════════════════════════════════════════
+   ANIMACIONES
+   ════════════════════════════════════════════════════════════ */
+
+/* La hoja de resultado sube y se pasa un pelo de largo antes de
+   asentarse: eso es lo que la hace sentir "física" y no un panel. */
+@keyframes g-hoja{ from{ transform:translateY(100%); } 72%{ transform:translateY(-2.5%); } }
+/* Acertar: rebote corto hacia arriba. */
+@keyframes g-rebote{ 0%{ transform:scale(1); } 40%{ transform:scale(1.055); } 100%{ transform:scale(1); } }
+/* Fallar: sacudida horizontal decreciente. */
+@keyframes g-sacudir{
+  0%,100%{ transform:translateX(0); }
+  15%{ transform:translateX(-7px); }
+  35%{ transform:translateX(7px); }
+  55%{ transform:translateX(-4px); }
+  75%{ transform:translateX(4px); }
+}
+/* Entrada de los bloques que aparecen al cambiar de ítem. */
+@keyframes g-entrar{ from{ opacity:0; transform:translateY(12px) scale(.985); } }
+/* Contadores (energía, combo): latido al cambiar de valor. */
+@keyframes g-latido{ 0%{ transform:scale(1); } 30%{ transform:scale(1.28); } 100%{ transform:scale(1); } }
+/* Destello que recorre la barra de progreso y la pata de la hoja. */
+@keyframes g-brillo{ from{ transform:translateX(-130%); } to{ transform:translateX(230%); } }
+/* Aviso intermitente (queda con pocas vidas / poco tiempo). */
+@keyframes g-parpadeo{ 0%,100%{ opacity:1; } 50%{ opacity:.3; } }
+/* Icono de la hoja de resultado: aparece con rebote. */
+@keyframes g-icono{ from{ transform:scale(.4) rotate(-25deg); opacity:0; } }
+/* El personaje "respira" mientras esperas (idle flotante). */
+@keyframes g-flotar{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-4px); } }
+
+/* ════════════════════════════════════════════════════════════
+   CONTENEDOR
+   ════════════════════════════════════════════════════════════ */
+.ar-raiz{ display:flex; flex-direction:column; height:100%; min-height:100%; }
+
+.ar-shell{
+  position:relative; flex:1; min-height:0;
+  display:flex; flex-direction:column; overflow:hidden;
+  background:var(--g-surface); font-family:var(--font-body);
+  color:var(--g-ink);
+  /* Sin "rebote elástico" del scroll: dentro de una app se siente roto. */
+  overscroll-behavior:none;
+}
+
+/* ════════ ZONA 1 · Barra superior ════════ */
+.ar-top{
+  flex-shrink:0; padding:.85rem .95rem .4rem;
+  display:flex; flex-direction:column; gap:.3rem;
+}
+.ar-top-fila{ display:flex; align-items:center; gap:.7rem; }
+
+.ar-x{
+  width:40px; height:40px; flex-shrink:0; border:0; background:transparent;
+  color:var(--g-muted); font-size:1.3rem; line-height:1; cursor:pointer;
+  border-radius:var(--g-r-sm); display:grid; place-items:center;
+  transition:background var(--g-fast) ease, color var(--g-fast) ease, transform var(--g-fast) ease;
+}
+.ar-x:hover:not(:disabled){ background:var(--g-page); color:var(--g-ink); }
+.ar-x:active:not(:disabled){ transform:scale(.9); }
+.ar-x:focus-visible{ outline:3px solid var(--g-brand); outline-offset:2px; }
+.ar-x:disabled{ cursor:default; opacity:.55; }
+
+/* Barra de progreso: relleno con degradado y un destello que la recorre
+   de vez en cuando, para que se note que está viva. */
+.ar-barra{
+  position:relative; flex:1; height:16px; background:var(--g-line);
+  border-radius:99px; overflow:hidden;
+  box-shadow:inset 0 1px 2px rgba(11,18,32,.12);
+}
+.ar-barra span{
+  position:relative; display:block; height:100%; border-radius:99px;
+  background:linear-gradient(180deg,#fb923c 0%,var(--g-brand) 100%);
+  transition:width var(--g-slow) var(--g-out);
+  box-shadow:inset 0 -3px 0 rgba(0,0,0,.14), inset 0 2px 0 rgba(255,255,255,.28);
+  overflow:hidden;
+}
+/* Destello periódico (cada 3.5s) dentro del relleno. */
+.ar-barra span::after{
+  content:''; position:absolute; inset:0 auto 0 0; width:34%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);
+  animation:g-brillo 3.5s var(--g-out) infinite;
+}
+
+.ar-energia{
+  display:flex; align-items:center; gap:.25rem; flex-shrink:0;
+  font-weight:800; font-size:1.05rem; color:var(--g-brand);
+  font-variant-numeric:tabular-nums;
+}
+.ar-rayo{
+  font-style:normal; font-size:.8rem; color:#fff;
+  background:linear-gradient(180deg,var(--g-brand-hi),var(--g-brand));
+  border-radius:8px; padding:.18rem .35rem; line-height:1;
+  box-shadow:0 2px 0 var(--g-brand-edge);
+}
+
+/* El combo se MONTA al llegar a 2 aciertos seguidos, así que su
+   animación de entrada sí se ejecuta cada vez que aparece. */
+.ar-combo{
+  align-self:center; font-size:.72rem; font-weight:800; letter-spacing:.1em;
+  text-transform:uppercase; color:var(--g-ok);
+  animation:g-entrar var(--g-base) var(--g-spring) both;
+}
+.ar-combo b{
+  font-size:.9rem; display:inline-block;
+  animation:g-latido var(--g-base) var(--g-spring);
+}
+
+/* ════════ ZONA 2 · Cuerpo con scroll ════════
+   Es el único bloque con scroll. La animación de entrada se vuelve a
+   ejecutar en cada ítem porque Marco le pone un key que cambia con el
+   índice: al cambiar de pregunta el contenido entra deslizándose. */
+.ar-cuerpo{
+  flex:1; min-height:0; overflow-y:auto; -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain; scrollbar-gutter:stable;
+  padding:.5rem clamp(.9rem,4vw,1.15rem) 1.3rem;
+  display:flex; flex-direction:column; gap:1rem;
+  animation:g-entrar var(--g-base) var(--g-out) both;
+}
+
+/* ── Encabezado: etiqueta chica + título grande ── */
+.ar-encabezado{ display:flex; flex-direction:column; gap:.45rem; }
+.ar-eyebrow{
+  margin:0; display:flex; align-items:center; gap:.5rem;
+  font-size:.74rem; font-weight:800; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--g-brand);
+}
+.ar-eyebrow i{
+  font-style:normal; width:28px; height:28px; flex-shrink:0;
+  border-radius:9px; color:#fff; display:grid; place-items:center; font-size:.9rem;
+  background:linear-gradient(180deg,var(--g-brand-hi),var(--g-brand));
+  box-shadow:0 2px 0 var(--g-brand-edge);
+}
+.ar-titulo{
+  margin:0; font-family:var(--font-head); font-weight:800;
+  font-size:clamp(1.35rem,5.8vw,1.7rem); line-height:1.18; color:var(--g-ink);
+  letter-spacing:-.01em;
+}
+.ar-enunciado{
+  margin:0; font-size:clamp(.98rem,3.7vw,1.08rem); font-weight:600;
+  line-height:1.45; color:var(--g-ink);
+}
+.ar-pista{ margin:0; font-size:.8rem; color:var(--g-muted); }
+.ar-instrucciones{
+  margin:0; flex-shrink:0; font-size:.82rem; color:var(--g-muted);
+  background:var(--g-page); padding:.55rem .9rem; text-align:center;
+  border-bottom:1px solid var(--g-line);
+}
+
+/* Cintillos que van por encima del marco (canción / anuncio). */
+.ar-cintillo{
+  flex-shrink:0; background:linear-gradient(180deg,#1e3a63,var(--g-ink));
+  color:#fff; padding:.6rem .9rem; font-size:.85rem; text-align:center;
+  border:0; width:100%; letter-spacing:.01em;
+}
+.ar-cintillo-btn{
+  background:var(--g-page); color:var(--g-ink); font-weight:800; cursor:pointer;
+  min-height:44px; transition:background var(--g-fast) ease, transform var(--g-fast) ease;
+}
+.ar-cintillo-btn:active{ transform:scale(.99); }
+
+/* ── Personaje + globo de diálogo ── */
+.ar-escena{ display:flex; align-items:center; gap:.55rem; }
+.ar-personaje{
+  width:clamp(78px,24vw,104px); height:auto; flex-shrink:0;
+  image-rendering:pixelated; align-self:flex-end;
+  animation:g-flotar 3.4s ease-in-out infinite;
+  filter:drop-shadow(0 6px 10px rgba(11,18,32,.18));
+}
+.ar-personaje.chico{ width:52px; align-self:flex-start; }
+
+.ar-globo{
+  position:relative; flex:1; min-width:0;
+  display:flex; align-items:center; gap:.4rem; flex-wrap:wrap;
+  border:2px solid var(--g-line); border-radius:18px;
+  background:var(--g-surface); padding:.75rem .9rem;
+  font-size:clamp(.98rem,3.9vw,1.12rem); color:var(--g-ink); line-height:1.4;
+  box-shadow:0 2px 0 rgba(11,18,32,.05);
+  animation:g-entrar var(--g-base) var(--g-out) both;
+}
+/* pico del globo apuntando al personaje */
+.ar-escena .ar-globo::before,
+.ar-escena .ar-globo::after{
+  content:''; position:absolute; left:-9px; top:50%; transform:translateY(-50%);
+  border:9px solid transparent; border-left:0;
+}
+.ar-escena .ar-globo::before{ border-right-color:var(--g-line); }
+.ar-escena .ar-globo::after{ left:-6px; border-right-color:var(--g-surface); }
+
+.ar-altavoz{
+  min-width:42px; min-height:42px; border:0; background:var(--g-page);
+  color:var(--g-brand); font-size:1.25rem; line-height:1; cursor:pointer;
+  border-radius:50%; flex-shrink:0;
+  transition:background var(--g-fast) ease, transform var(--g-fast) ease;
+}
+.ar-altavoz:hover{ background:#ffe9d1; }
+.ar-altavoz:active{ transform:scale(.88); }
+.ar-altavoz:focus-visible{ outline:3px solid var(--g-brand); outline-offset:2px; }
+.ar-altavoz.ar-lento{ font-size:1.05rem; opacity:.85; }
+.ar-altavoz.mini{ min-width:32px; min-height:32px; font-size:.95rem; }
+
+/* ── Diálogo de contexto (formato chat) ── */
+.ar-dialogo{ display:flex; flex-direction:column; gap:.55rem; }
+.ar-fila-burbuja{ display:flex; align-items:flex-start; gap:.45rem; }
+.ar-fila-burbuja.mia{ justify-content:flex-end; }
+.ar-burbuja{
+  background:var(--g-surface); border:2px solid var(--g-line);
+  border-radius:18px 18px 18px 6px; padding:.6rem .8rem;
+  font-size:.94rem; max-width:88%; color:var(--g-ink); line-height:1.4;
+  display:flex; align-items:center; gap:.4rem; flex-wrap:wrap;
+  box-shadow:0 1px 0 rgba(11,18,32,.04);
+  animation:g-entrar var(--g-base) var(--g-out) both;
+}
+.ar-burbuja.ar-mia{
+  background:linear-gradient(180deg,#1e3a63,var(--g-ink));
+  color:#fff; border-color:transparent;
+  border-radius:18px 18px 6px 18px;
+  box-shadow:0 3px 0 rgba(11,18,32,.18);
+}
+.ar-hablante{
+  display:block; width:100%; font-size:.68rem; color:var(--g-muted);
+  font-weight:800; letter-spacing:.06em; text-transform:uppercase;
+}
+
+/* ── Panel de líneas (canción, patrón, anuncio) ── */
+.ar-panel{
+  border:2px solid var(--g-line); border-radius:18px;
+  background:var(--g-surface); overflow:hidden;
+  box-shadow:0 2px 0 rgba(11,18,32,.05);
+}
+.ar-panel-fila{
+  margin:0; padding:.8rem .95rem; font-size:1rem; color:var(--g-ink);
+  line-height:1.5; border-bottom:1px solid var(--g-line);
+  border-left:3px solid transparent;
+  transition:background var(--g-fast) ease, border-left-color var(--g-fast) ease;
+}
+.ar-panel-fila:last-child{ border-bottom:0; }
+/* La fila "activa" es la que hay que completar: se marca con la barra
+   de marca a la izquierda y un fondo apenas teñido, así el ojo va solo. */
+.ar-panel-fila.activa{
+  font-weight:700; background:var(--g-sel-bg); border-left-color:var(--g-brand);
+}
+
+/* ── Renglones donde "cae" la respuesta ──
+   Son las líneas punteadas tipo "completá el espacio". */
+.ar-renglones{ display:flex; flex-direction:column; gap:.75rem; padding-top:.25rem; }
+.ar-renglon{
+  height:2px; border-radius:2px;
+  background:repeating-linear-gradient(90deg,var(--g-line) 0 6px,transparent 6px 11px);
+}
+.ar-renglon-contenido{ min-height:38px; display:flex; align-items:flex-end; }
+.ar-vacio{
+  margin:0; text-align:center; font-size:.85rem; color:var(--g-muted);
+  padding:.7rem 0; font-weight:600;
+}
+
+/* subrayado punteado bajo el texto "tocable" */
+.ar-punteado{
+  text-decoration:underline dotted var(--g-muted);
+  text-underline-offset:5px; text-decoration-thickness:2px;
+}
+
+/* ════════════════════════════════════════════════════════════
+   CONTROLES DE RESPUESTA
+   Los tres comparten la misma idea: una pata de --g-depth abajo
+   (el "3D") cuyo color cambia con el estado, y al presionar el
+   botón baja --g-depth-press. El color de la pata se cambia
+   redefiniendo --g-edge en la regla del estado, así no hace falta
+   repetir border-bottom-color en cada una.
+   ════════════════════════════════════════════════════════════ */
+
+/* ── Banco de fichas (palabras para ordenar/traducir) ── */
+.ar-fichas{ display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center; }
+.ar-ficha{
+  min-height:48px; padding:.55rem .95rem; cursor:pointer;
+  border:2px solid var(--g-line); border-bottom:var(--g-depth) solid var(--g-edge);
+  background:var(--g-surface); border-radius:var(--g-r-sm);
+  font-family:var(--font-body); font-size:.98rem; font-weight:600; color:var(--g-ink);
+  transition:transform var(--g-fast) ease, border-color var(--g-fast) ease,
+             background var(--g-fast) ease, color var(--g-fast) ease;
+}
+.ar-ficha:active{ transform:translateY(3px); border-bottom-width:var(--g-depth-press); }
+.ar-ficha:focus-visible{ outline:3px solid var(--g-brand); outline-offset:2px; }
+/* Entrada escalonada: las fichas caen una tras otra. Sólo CSS. */
+.ar-fichas > .ar-ficha{ animation:g-entrar var(--g-base) var(--g-out) both; }
+.ar-fichas > .ar-ficha:nth-child(1){ animation-delay:.03s; }
+.ar-fichas > .ar-ficha:nth-child(2){ animation-delay:.06s; }
+.ar-fichas > .ar-ficha:nth-child(3){ animation-delay:.09s; }
+.ar-fichas > .ar-ficha:nth-child(4){ animation-delay:.12s; }
+.ar-fichas > .ar-ficha:nth-child(5){ animation-delay:.15s; }
+.ar-fichas > .ar-ficha:nth-child(6){ animation-delay:.18s; }
+.ar-fichas > .ar-ficha:nth-child(n+7){ animation-delay:.21s; }
+
+/* ── Opciones de respuesta (quiz) ──
+   Mismos estados que antes (sel / ok / mal / gris) para no tocar la
+   lógica: sólo cambia cómo se ven y cómo se mueven. */
+.ar-opciones{ display:flex; flex-direction:column; gap:.6rem; }
+.ar-opcion{
+  position:relative; min-height:56px; text-align:center; padding:.85rem 1rem;
+  border:2px solid var(--g-line); border-bottom:var(--g-depth) solid var(--g-edge);
+  background:var(--g-surface); border-radius:var(--g-r-md);
+  font-size:1rem; font-weight:600; color:var(--g-ink); cursor:pointer;
+  font-family:var(--font-body);
+  transition:transform var(--g-fast) ease, border-color var(--g-fast) ease,
+             background var(--g-fast) ease, color var(--g-fast) ease;
+}
+.ar-opcion:hover:not(:disabled){
+  /* El hover aclara sólo los lados: la pata de abajo se mantiene oscura
+     para que el botón no pierda su "grosor". */
+  border-top-color:#cbd5e1; border-left-color:#cbd5e1; border-right-color:#cbd5e1;
+}
+.ar-opcion:active:not(:disabled){ transform:translateY(3px); border-bottom-width:var(--g-depth-press); }
+.ar-opcion:focus-visible{ outline:3px solid var(--g-brand); outline-offset:2px; }
+.ar-opciones > .ar-opcion{ animation:g-entrar var(--g-base) var(--g-out) both; }
+.ar-opciones > .ar-opcion:nth-child(1){ animation-delay:.04s; }
+.ar-opciones > .ar-opcion:nth-child(2){ animation-delay:.09s; }
+.ar-opciones > .ar-opcion:nth-child(3){ animation-delay:.14s; }
+.ar-opciones > .ar-opcion:nth-child(4){ animation-delay:.19s; }
+.ar-opciones > .ar-opcion:nth-child(n+5){ animation-delay:.24s; }
+
+/* Elegida pero todavía sin comprobar. */
+.ar-opcion.sel{
+  border-color:var(--g-sel-borde); border-bottom-color:var(--g-sel-pata);
+  background:var(--g-sel-bg); color:var(--g-sel); font-weight:800;
+}
+/* Acierto: se pinta de verde, rebota y larga un destello. */
+.ar-opcion.ok{
+  border-color:var(--g-ok); border-bottom-color:var(--g-ok-pata);
+  background:var(--g-ok-bg); color:var(--g-ok); font-weight:800;
+  animation:g-rebote .34s var(--g-spring);
+}
+/* Error: se pinta de rojo y se sacude. */
+.ar-opcion.mal{
+  border-color:var(--g-bad); border-bottom-color:var(--g-bad-pata);
+  background:var(--g-bad-bg); color:var(--g-bad); font-weight:800;
+  animation:g-sacudir .42s ease;
+}
+/* Las que no se tocaron se apagan para que la mirada vaya a la correcta. */
+.ar-opcion.gris{ opacity:.38; filter:grayscale(.35); }
+
+/* ── Campo de escritura sobre el renglón ── */
+.ar-input{
+  width:100%; border:0; border-bottom:2px solid transparent; background:transparent;
+  padding:.35rem .1rem; font-size:clamp(1.05rem,4.3vw,1.2rem);
+  font-family:var(--font-body); font-weight:600; color:var(--g-ink);
+  transition:border-color var(--g-fast) ease, color var(--g-fast) ease;
+}
+/* Sin borde visible en reposo (se ve como un renglón), así que el
+   outline nativo no puede sacarse sin dejar un indicador propio —
+   WCAG 2.4.7 (foco visible). */
+.ar-input:focus{ outline:0; border-bottom-color:var(--g-brand); }
+.ar-input.ok{ color:var(--g-ok); font-weight:800; }
+.ar-input.mal{ color:var(--g-bad); font-weight:800; }
+
+/* ════════ Emparejar (columnas) ════════ */
+.ar-columnas{ display:grid; grid-template-columns:1fr 1fr; gap:.6rem; }
+.ar-col{ display:flex; flex-direction:column; gap:.55rem; }
+.ar-celda{
+  min-height:60px; padding:.65rem .55rem; cursor:pointer;
+  border:2px solid var(--g-line); border-bottom:var(--g-depth) solid var(--g-edge);
+  background:var(--g-surface); border-radius:var(--g-r-md);
+  font-size:.95rem; font-weight:600; color:var(--g-ink);
+  font-family:var(--font-body); text-align:center; line-height:1.3;
+  transition:transform var(--g-fast) ease, border-color var(--g-fast) ease,
+             background var(--g-fast) ease, color var(--g-fast) ease, opacity var(--g-base) ease;
+}
+.ar-celda:active:not(:disabled){ transform:translateY(3px); border-bottom-width:var(--g-depth-press); }
+.ar-celda:focus-visible{ outline:3px solid var(--g-brand); outline-offset:2px; }
+.ar-celda.sel{
+  border-color:var(--g-sel-borde); border-bottom-color:var(--g-sel-pata);
+  background:var(--g-sel-bg);
+  color:var(--g-sel); font-weight:800;
+}
+/* Ya emparejada: se queda "fantasma" para no reusarla. */
+.ar-celda.hecho{ opacity:.22; border-style:dashed; border-bottom-width:2px; cursor:default; }
+/* Par equivocado: sacudida roja. */
+.ar-celda.sacude{
+  animation:g-sacudir .42s ease;
+  border-color:var(--g-bad); border-bottom-color:var(--g-bad-pata);
+  background:var(--g-bad-bg); color:var(--g-bad);
+}
+
+/* ════════ Ordenar (lista numerada) ════════ */
+.ar-renglones-lista .ar-elegidos{
+  list-style:none; counter-reset:paso; padding:0; margin:0;
+  display:flex; flex-direction:column; gap:.45rem;
+}
+.ar-elegidos li{ counter-increment:paso; position:relative; }
+/* El elemento clickeable es el <button> de adentro (accesible por
+   teclado de forma nativa) — el <li> solo posiciona el número. */
+.ar-elegidos li button{
+  width:100%; text-align:left; font-family:inherit;
+  background:var(--g-surface); color:var(--g-ink);
+  border:2px solid var(--g-line); border-bottom:var(--g-depth) solid var(--g-edge);
+  border-radius:var(--g-r-md);
+  padding:.7rem .8rem .7rem 2.4rem; font-size:.94rem; font-weight:600; cursor:pointer;
+  transition:transform var(--g-fast) ease, border-color var(--g-fast) ease,
+             background var(--g-fast) ease, color var(--g-fast) ease;
+}
+.ar-elegidos li button:active:not(:disabled){ transform:translateY(3px); border-bottom-width:var(--g-depth-press); }
+.ar-elegidos li button:disabled{ cursor:default; }
+.ar-elegidos li button:focus-visible{ outline:3px solid var(--g-brand); outline-offset:2px; }
+.ar-elegidos li::before{
+  content:counter(paso); position:absolute; left:.7rem; top:50%;
+  transform:translateY(-50%) translateZ(0); font-weight:800; color:var(--g-muted);
+  pointer-events:none; z-index:1;
+}
+.ar-elegidos li.ok button{
+  border-color:var(--g-ok); border-bottom-color:var(--g-ok-pata);
+  background:var(--g-ok-bg); color:var(--g-ok); font-weight:800;
+  animation:g-rebote .34s var(--g-spring);
+}
+.ar-elegidos li.mal button{
+  border-color:var(--g-bad); border-bottom-color:var(--g-bad-pata);
+  background:var(--g-bad-bg); color:var(--g-bad); font-weight:800;
+  animation:g-sacudir .42s ease;
+}
+
+/* ════════ Sopa de letras ════════ */
+.ar-instruccion-teclado{
+  font-size:.76rem; color:var(--g-muted); text-align:center; margin:0 0 .5rem;
+}
+.ar-grid{
+  display:grid; gap:2px; touch-action:none; user-select:none;
+  background:var(--g-line); padding:2px; border-radius:var(--g-r-sm);
+}
+.ar-celda-sopa{
+  all:unset; box-sizing:border-box; cursor:pointer;
+  aspect-ratio:1; display:grid; place-items:center; background:var(--g-surface);
+  font-size:clamp(.62rem,2.7vw,.88rem); font-weight:800; color:var(--g-ink);
+  border-radius:5px;
+  transition:background var(--g-fast) ease, color var(--g-fast) ease, transform var(--g-fast) ease;
+}
+.ar-celda-sopa:active{ transform:scale(.9); }
+.ar-celda-sopa.sel{
+  background:linear-gradient(180deg,var(--g-brand-hi),var(--g-brand)); color:#fff;
+  animation:g-rebote .3s var(--g-spring);
+}
+.ar-celda-sopa.hallada{
+  background:var(--g-ok-bg); color:var(--g-ok);
+  animation:g-rebote .34s var(--g-spring);
+}
+.ar-celda-sopa:focus-visible{ outline:3px solid var(--g-brand); outline-offset:-3px; z-index:1; position:relative; }
+.ar-lista-palabras{ display:flex; flex-wrap:wrap; gap:.4rem; justify-content:center; }
+.ar-lista-palabras span{
+  font-size:.75rem; font-weight:700; background:var(--g-page);
+  border:1px solid var(--g-line); border-radius:99px;
+  padding:.28rem .65rem; color:var(--g-muted);
+  transition:background var(--g-fast) ease, color var(--g-fast) ease;
+}
+.ar-lista-palabras span.hallada{
+  background:var(--g-ok-bg); color:var(--g-ok);
+  border-color:var(--g-ok-pata); text-decoration:line-through;
+}
+
+/* ════════ Libre / redacción ════════ */
+.ar-textarea{
+  border:2px solid var(--g-line); border-radius:var(--g-r-md); padding:.85rem;
+  font-family:var(--font-body); font-size:1rem; resize:vertical; color:var(--g-ink);
+  background:var(--g-surface); line-height:1.5;
+  transition:border-color var(--g-fast) ease, box-shadow var(--g-fast) ease;
+}
+.ar-textarea:focus{ outline:0; border-color:var(--g-brand); box-shadow:0 0 0 3px rgba(180,83,9,.15); }
+.ar-criterios{ margin:0; padding-left:1.1rem; font-size:.78rem; color:var(--g-muted); line-height:1.5; }
+.ar-aviso{
+  margin:0; font-size:.8rem; font-weight:600; color:var(--g-sel); background:var(--g-sel-bg);
+  border-left:3px solid var(--g-brand); border-radius:10px; padding:.55rem .75rem;
+}
+
+/* ════════ Pronunciación ════════ */
+.ar-pron{ display:flex; flex-direction:column; gap:.85rem; }
+.ar-pron-item{
+  border:2px solid var(--g-line); border-radius:18px; padding:.8rem;
+  display:flex; flex-direction:column; gap:.55rem;
+  background:var(--g-surface); box-shadow:0 2px 0 rgba(11,18,32,.05);
+  animation:g-entrar var(--g-base) var(--g-out) both;
+}
+.ar-pron-item .ar-globo{ border:0; padding:0; box-shadow:none; animation:none; }
+.ar-pron-item .ar-globo::before,
+.ar-pron-item .ar-globo::after{ display:none; }
+.ar-silabas{ display:flex; gap:.35rem; flex-wrap:wrap; }
+.ar-silabas span{
+  background:var(--g-page); border:1px solid var(--g-line);
+  border-radius:9px; padding:.22rem .55rem; font-size:.85rem; font-weight:600;
+}
+.ar-silabas span.acento{
+  background:linear-gradient(180deg,var(--g-brand-hi),var(--g-brand)); color:#fff;
+  font-weight:800; border-color:transparent; box-shadow:0 2px 0 var(--g-brand-edge);
+}
+.ar-pron-item code{ font-size:.8rem; color:var(--g-muted); }
+
+/* ════════ ZONA 3 · Pie fijo ════════ */
+.ar-pie{
+  flex-shrink:0; border-top:2px solid var(--g-line); background:var(--g-surface);
+  padding:.85rem clamp(.9rem,4vw,1.15rem) calc(.85rem + env(safe-area-inset-bottom,0px));
+  display:flex; flex-direction:column; gap:.55rem;
+  transition:opacity var(--g-base) ease;
+}
+/* Con la hoja de resultado abierta, el pie queda tapado: se atenúa y se
+   vuelve intocable para que no se pueda "tocar a ciegas" un botón que el
+   estudiante no está viendo. */
+.ar-shell.con-hoja .ar-pie{ opacity:.35; pointer-events:none; }
+
+/* El botón principal. Es la señal de "ya puedes comprobar":
+   deshabilitado es gris y PLANO (sin pata = no se puede hundir);
+   al habilitarse recupera la pata de color, así que literalmente
+   "se levanta" del fondo. */
+.ar-cta{
+  --cta-edge:var(--g-brand-edge);
+  width:100%; min-height:54px; border:0; border-radius:16px;
+  background:linear-gradient(180deg,var(--g-brand-hi),var(--g-brand));
+  color:#fff;
+  font-family:var(--font-body); font-weight:800; font-size:1.02rem;
+  letter-spacing:.06em; text-transform:uppercase; cursor:pointer;
+  box-shadow:0 var(--g-depth) 0 var(--cta-edge);
+  transition:transform var(--g-fast) ease, box-shadow var(--g-base) var(--g-out),
+             background var(--g-base) ease, color var(--g-base) ease;
+}
+.ar-cta:active:not(:disabled){ transform:translateY(3px); box-shadow:0 1px 0 var(--cta-edge); }
+.ar-cta:focus-visible{ outline:3px solid var(--g-ink); outline-offset:3px; }
+.ar-cta:disabled{
+  /* Gris legible (5.2:1 sobre el fondo de la pata): el estudiante tiene
+     que poder LEER qué dice el botón aunque todavía no pueda tocarlo.
+     Lo que comunica que está apagado es la falta de pata y de color. */
+  background:var(--g-line); color:#64748b;
+  box-shadow:none; cursor:not-allowed;
+}
+.ar-cta.ok{ background:linear-gradient(180deg,#22c55e,var(--g-ok)); --cta-edge:#166534; }
+.ar-cta.mal{ background:linear-gradient(180deg,#ef4444,var(--g-bad)); --cta-edge:#7f1d1d; }
+
+/* Enlace secundario ("Terminar ahora"). */
+.ar-enlace{
+  border:0; background:transparent; color:var(--g-muted);
+  font-family:var(--font-body); font-weight:800; font-size:.8rem;
+  letter-spacing:.07em; text-transform:uppercase; cursor:pointer;
+  min-height:40px; border-radius:var(--g-r-sm);
+  transition:color var(--g-fast) ease;
+}
+.ar-enlace:hover{ color:var(--g-ink); text-decoration:underline; text-underline-offset:4px; }
+.ar-enlace:focus-visible{ outline:3px solid var(--g-brand); outline-offset:2px; }
+.ar-contador{ margin:0; text-align:center; font-size:.78rem; color:var(--g-muted); font-weight:600; }
+.ar-contador.ok{ color:var(--g-ok); font-weight:800; }
+
+/* ════════════════════════════════════════════════════════════
+   HOJA DE RESULTADO
+   Sube desde abajo con sobrepaso (rebota un poco al llegar arriba),
+   se corona con una franja del color del resultado y el icono entra
+   girando. Es el momento de mayor carga emocional de la actividad,
+   así que es donde más se nota el movimiento.
+   ════════════════════════════════════════════════════════════ */
+.ar-hoja{
+  position:absolute; left:0; right:0; bottom:0; z-index:5;
+  border-radius:24px 24px 0 0;
+  padding:1.1rem clamp(.9rem,4vw,1.15rem) calc(1.1rem + env(safe-area-inset-bottom,0px));
+  display:flex; flex-direction:column; gap:.7rem;
+  animation:g-hoja .44s var(--g-spring) both;
+  box-shadow:var(--g-sheet);
+  border-top:5px solid var(--g-ok);
+}
+.ar-hoja.ok{ background:var(--g-ok-bg); color:var(--g-ok); border-top-color:var(--g-ok); }
+.ar-hoja.mal{ background:var(--g-bad-bg); color:var(--g-bad); border-top-color:var(--g-bad); }
+
+.ar-hoja-titulo{
+  margin:0; display:flex; align-items:center; gap:.6rem;
+  font-family:var(--font-head); font-weight:800; font-size:1.3rem;
+  letter-spacing:-.01em;
+}
+.ar-hoja-icono{
+  width:34px; height:34px; border-radius:50%; flex-shrink:0;
+  display:grid; place-items:center; font-size:1rem; color:#fff;
+  animation:g-icono .4s var(--g-spring) both;
+  box-shadow:0 2px 0 rgba(11,18,32,.18);
+}
+.ar-hoja.ok .ar-hoja-icono{ background:linear-gradient(180deg,#22c55e,var(--g-ok)); }
+.ar-hoja.mal .ar-hoja-icono{ background:linear-gradient(180deg,#ef4444,var(--g-bad)); }
+
+/* El bloque de "Significado" / "Respuesta correcta" va sobre una tarjeta
+   translúcida para que el texto se lea sin pelear con el fondo verde. */
+.ar-hoja-bloque{
+  background:rgba(255,255,255,.66); border-radius:var(--g-r-md); padding:.6rem .8rem;
+}
+.ar-hoja-bloque strong{ display:block; font-size:.72rem; font-weight:800;
+  letter-spacing:.07em; text-transform:uppercase; opacity:.75; }
+.ar-hoja-bloque p{ margin:.2rem 0 0; font-size:1rem; font-weight:600; }
+.ar-hoja-nota{ margin:0; font-size:.82rem; opacity:.85; }
+
+/* ── Error ── */
+.ar-error{ text-align:center; justify-content:center; gap:.6rem; }
+.ar-error small{ color:var(--g-muted); font-size:.75rem; }
+
+/* ════════════════════════════════════════════════════════════
+   Sprite.jsx — respaldo honesto cuando falta el arte
+   Mismo criterio visual que .ar-personaje / PROPS_ESCENARIO:
+   un marcador claro, nunca un hueco vacío.
+   ════════════════════════════════════════════════════════════ */
+.spr-img{ display:block; max-width:100%; image-rendering:pixelated; }
+.spr-fallback{
+  display:inline-flex; align-items:center; justify-content:center;
+  min-width:34px; min-height:34px; font-size:1.3rem; line-height:1;
+  background:var(--g-page); border:1px dashed #94a3b8; border-radius:10px;
+}
+
+/* ── Emparejar con tarjetas de imagen (17-emparejar-imagenes) ── */
+.ar-celda-media{ display:flex; flex-direction:column; align-items:center; gap:.3rem; }
+.ar-celda-img{ width:100%; max-width:72px; height:56px; object-fit:contain; }
+.ar-celda-media small{ font-size:.68rem; color:var(--g-muted); }
+
+/* ════════════════════════════════════════════════════════════
+   LABERINTO DE PALABRAS (15-laberinto-palabras)
+   ════════════════════════════════════════════════════════════ */
+.lab-hud{ display:flex; align-items:center; justify-content:space-between; gap:.5rem; flex-wrap:wrap; }
+.lab-hud-item{
+  font-size:.85rem; font-weight:800; color:var(--g-ink);
+  display:flex; align-items:center; gap:.25rem;
+  background:var(--g-page); border-radius:99px; padding:.3rem .7rem;
+}
+/* Quedan pocas vidas o poco tiempo: late para avisar sin gritar. */
+.lab-hud-item.urgente{ color:var(--g-bad); background:var(--g-bad-bg); animation:g-parpadeo 1s infinite; }
+
+.lab-oracion{
+  margin:0; text-align:center; font-weight:800; letter-spacing:.02em;
+  color:var(--g-ink); background:var(--g-page); border-radius:var(--g-r-md);
+  padding:.6rem .8rem; font-size:clamp(.88rem,3.7vw,1.05rem);
+  border-left:3px solid var(--g-brand);
+}
+.lab-traduccion{ display:block; font-weight:500; font-size:.78rem; color:var(--g-muted); margin-top:.2rem; }
+
+.lab-grid{
+  display:grid; gap:3px; background:var(--g-line); padding:3px; border-radius:var(--g-r-sm);
+}
+.lab-celda{
+  position:relative; aspect-ratio:1; border:0; border-radius:7px; cursor:pointer;
+  display:flex; align-items:center; justify-content:center; padding:2px;
+  font-size:clamp(.56rem,2.5vw,.74rem); font-weight:800; color:var(--g-ink);
+  transition:transform var(--g-fast) ease, background var(--g-fast) ease, color var(--g-fast) ease;
+}
+.lab-celda:active:not(:disabled){ transform:scale(.92); }
+/* Objetivo y distractor arrancan con el MISMO look neutro (a propósito):
+   antes el objetivo se pintaba naranja y el distractor rojo desde que se
+   dibujaba el piso, así que se veía el camino correcto sin jugar. Ahora
+   solo se distinguen cuando el jugador ya interactuó con esa celda. */
+.lab-vacio, .lab-inicio, .lab-objetivo, .lab-distractor{ background:var(--g-surface); }
+.lab-objetivo.hallado{
+  background:var(--g-ok-bg); color:var(--g-ok); text-decoration:line-through;
+  animation:g-rebote .34s var(--g-spring);
+}
+.lab-obstaculo{ background:#94a3b8; cursor:not-allowed; }
+.lab-celda:disabled{ cursor:default; }
+.lab-palabra{ word-break:break-word; text-align:center; line-height:1.05; }
+.lab-personaje{
+  position:absolute; inset:0; display:flex; align-items:center; justify-content:center;
+  font-size:clamp(1rem,4.2vw,1.3rem); filter:drop-shadow(0 1px 1px rgba(0,0,0,.35));
+}
+.lab-celda.con-personaje{ box-shadow:inset 0 0 0 3px var(--g-ink); }
+
+/* ════════════════════════════════════════════════════════════
+   ROMPECABEZAS DE ORACIÓN (16-rompecabezas-oracion)
+   ════════════════════════════════════════════════════════════ */
+.rc-tira, .rc-banco{ display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center; }
+.rc-tira{
+  min-height:56px; align-items:center; border-radius:var(--g-r-md);
+  background:var(--g-page); padding:.4rem; border:2px dashed var(--g-line);
+}
+.rc-pieza{
+  display:flex; align-items:center; gap:.3rem; min-height:48px;
+  border:2px solid var(--g-line); border-bottom:var(--g-depth) solid var(--g-edge);
+  border-radius:var(--g-r-md);
+  background:var(--g-surface); padding:.5rem .7rem; font-family:var(--font-body);
+  font-size:.94rem; font-weight:600; color:var(--g-ink); cursor:pointer;
+  transition:transform var(--g-fast) ease, border-color var(--g-fast) ease,
+             background var(--g-fast) ease, color var(--g-fast) ease;
+}
+.rc-pieza:active:not(:disabled){ transform:translateY(3px) scale(.98); border-bottom-width:var(--g-depth-press); }
+.rc-pieza:focus-visible{ outline:3px solid var(--g-brand); outline-offset:2px; }
+/* La pieza "encaja": rebote corto, como si calzara en su lugar. */
+.rc-pieza.ok{
+  border-color:var(--g-ok); border-bottom-color:var(--g-ok-pata);
+  background:var(--g-ok-bg); color:var(--g-ok);
+  animation:g-rebote .34s var(--g-spring);
+}
+.rc-pieza.mal{
+  border-color:var(--g-bad); border-bottom-color:var(--g-bad-pata);
+  background:var(--g-bad-bg); color:var(--g-bad);
+  animation:g-sacudir .42s ease;
+}
+.rc-conector{ font-size:.9rem; line-height:1; }
+
+/* ════════════════════════════════════════════════════════════
+   ARMAR OBJETOS EN UN ESCENARIO (18-armar-escenario)
+   ════════════════════════════════════════════════════════════ */
+.ae-escena{ position:relative; border-radius:18px; overflow:hidden; background:var(--g-page); }
+.ae-fondo{ width:100%; display:block; max-height:120px; object-fit:cover; }
+.ae-zonas{ display:flex; flex-direction:column; gap:.5rem; padding:.6rem; }
+.ae-zona{
+  border:2px dashed #94a3b8; border-radius:var(--g-r-md); background:var(--g-surface);
+  padding:.6rem .75rem; font-family:var(--font-body);
+  color:var(--g-ink); display:flex; flex-direction:column; gap:.35rem; min-height:56px;
+  transition:border-color var(--g-fast) ease, background var(--g-fast) ease;
+}
+.ae-zona.activa{ border-color:var(--g-brand); border-style:solid; background:var(--g-sel-bg); }
+.ae-zona.ok{ border-color:var(--g-ok); border-style:solid; background:var(--g-ok-bg); }
+.ae-zona.mal{
+  border-color:var(--g-bad); border-style:solid; background:var(--g-bad-bg);
+  animation:g-sacudir .42s ease;
+}
+.ae-zona-objetos{ display:flex; flex-wrap:wrap; gap:.35rem; }
+.ae-descarte{ border-style:solid; border-color:#94a3b8; }
+/* Botón "colocar acá" — antes era toda la tarjeta .ae-zona la que
+   hacía de botón; ya no puede serlo porque adentro hay OTROS botones
+   (los chips) y un <button> no puede contener otro <button>. */
+.ae-zona-titulo{
+  all:unset; cursor:pointer; font-weight:800; font-family:inherit; color:inherit;
+  display:block; font-size:.88rem;
+}
+.ae-zona-titulo:disabled{ cursor:default; }
+.ae-zona-titulo:focus-visible{ outline:3px solid var(--g-brand); outline-offset:2px; border-radius:4px; }
+.ae-chip{
+  all:unset; display:inline-flex; align-items:center; gap:.25rem; font-size:.78rem;
+  background:var(--g-page); border-radius:99px; padding:.22rem .6rem .22rem .3rem;
+  cursor:pointer; font-family:inherit; color:var(--g-ink); font-weight:600;
+  transition:background var(--g-fast) ease, transform var(--g-fast) ease;
+}
+.ae-chip:active{ transform:scale(.95); }
+.ae-chip:disabled{ cursor:default; }
+.ae-chip:focus-visible{ outline:3px solid var(--g-brand); outline-offset:2px; }
+.ae-chip .spr-img, .ae-chip .spr-fallback{ width:20px; height:20px; min-width:20px; min-height:20px; font-size:.85rem; border-radius:50%; }
+.ae-bandeja{ display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center; }
+.ae-objeto{
+  display:flex; flex-direction:column; align-items:center; gap:.25rem; width:80px;
+  border:2px solid var(--g-line); border-bottom:var(--g-depth) solid var(--g-edge);
+  border-radius:var(--g-r-md); background:var(--g-surface); padding:.55rem .4rem;
+  cursor:pointer; font-family:var(--font-body);
+  transition:transform var(--g-fast) ease, border-color var(--g-fast) ease,
+             background var(--g-fast) ease;
+}
+.ae-objeto:active{ transform:translateY(3px); border-bottom-width:var(--g-depth-press); }
+.ae-objeto:focus-visible{ outline:3px solid var(--g-brand); outline-offset:2px; }
+.ae-objeto.sel{
+  border-color:var(--g-sel-borde); border-bottom-color:var(--g-sel-pata);
+  background:var(--g-sel-bg);
+  animation:g-rebote .3s var(--g-spring);
+}
+.ae-objeto small{ font-size:.7rem; color:var(--g-muted); text-align:center; font-weight:600; }
+.ae-objeto .spr-img, .ae-objeto .spr-fallback{ width:36px; height:36px; min-width:36px; min-height:36px; font-size:1.3rem; }
+
+/* ════════════════════════════════════════════════════════════
+   ENCUENTRA AL IMPOSTOR (19-impostor)
+   ════════════════════════════════════════════════════════════ */
+.imp-grid{ display:grid; grid-template-columns:repeat(3, 1fr); gap:.5rem; }
+.imp-tarjeta{
+  display:flex; flex-direction:column; align-items:center; gap:.35rem;
+  border:2px solid var(--g-line); border-bottom:var(--g-depth) solid var(--g-edge);
+  border-radius:var(--g-r-md); background:var(--g-surface); padding:.65rem .45rem;
+  cursor:pointer; font-family:var(--font-body);
+  font-size:.84rem; font-weight:600; color:var(--g-ink); text-align:center;
+  transition:transform var(--g-fast) ease, border-color var(--g-fast) ease,
+             background var(--g-fast) ease, color var(--g-fast) ease, opacity var(--g-base) ease;
+}
+.imp-tarjeta:active:not(:disabled){ transform:translateY(3px); border-bottom-width:var(--g-depth-press); }
+.imp-tarjeta:focus-visible{ outline:3px solid var(--g-brand); outline-offset:2px; }
+/* Entrada escalonada de las tarjetas. */
+.imp-grid > .imp-tarjeta{ animation:g-entrar var(--g-base) var(--g-out) both; }
+.imp-grid > .imp-tarjeta:nth-child(1){ animation-delay:.03s; }
+.imp-grid > .imp-tarjeta:nth-child(2){ animation-delay:.07s; }
+.imp-grid > .imp-tarjeta:nth-child(3){ animation-delay:.11s; }
+.imp-grid > .imp-tarjeta:nth-child(4){ animation-delay:.15s; }
+.imp-grid > .imp-tarjeta:nth-child(5){ animation-delay:.19s; }
+.imp-grid > .imp-tarjeta:nth-child(n+6){ animation-delay:.23s; }
+.imp-tarjeta.sel{
+  border-color:var(--g-sel-borde); border-bottom-color:var(--g-sel-pata);
+  background:var(--g-sel-bg); color:var(--g-sel);
+}
+.imp-tarjeta.ok{
+  border-color:var(--g-ok); border-bottom-color:var(--g-ok-pata);
+  background:var(--g-ok-bg); color:var(--g-ok); font-weight:800;
+  animation:g-rebote .34s var(--g-spring);
+}
+.imp-tarjeta.mal{
+  border-color:var(--g-bad); border-bottom-color:var(--g-bad-pata);
+  background:var(--g-bad-bg); color:var(--g-bad); font-weight:800;
+  animation:g-sacudir .42s ease;
+}
+.imp-tarjeta.gris{ opacity:.38; filter:grayscale(.35); }
+.imp-img{ width:100%; max-width:64px; height:48px; object-fit:contain; }
+
+/* ════════════════════════════════════════════════════════════
+   TIRO A LA CANASTA (20-basquetbol)
+   Capas (z-index): piso → posiciones de tiro (2) → balón en vuelo (3)
+   → red (4) → frente del aro (5). Así el balón pasa POR DETRÁS del
+   frente del aro y de la red cuando encesta.
+   ════════════════════════════════════════════════════════════ */
+.bq-cancha{
+  position:relative; flex-shrink:0; width:100%; height:clamp(320px, 52vh, 430px);
+  border-radius:var(--g-r-lg); overflow:hidden; isolation:isolate;
+  background:
+    repeating-linear-gradient(90deg, rgba(0,0,0,.05) 0 2px, transparent 2px 46px),
+    linear-gradient(180deg, #e8b77a 0%, #d99a55 55%, #c9823d 100%);
+  border:2px solid #b06a2c; border-bottom:var(--g-depth) solid #8a4f1c;
+}
+/* Zona pintada bajo el aro + arco de tres puntos */
+.bq-zona{
+  position:absolute; left:50%; top:31%; width:34%; height:44%;
+  transform:translateX(-50%); z-index:0;
+  background:rgba(180,83,9,.22); border:3px solid rgba(255,255,255,.75); border-top:0;
+}
+.bq-zona::after{
+  content:''; position:absolute; left:50%; bottom:-24%; width:70%; aspect-ratio:1;
+  transform:translateX(-50%); border:3px solid rgba(255,255,255,.75); border-radius:50%;
+  clip-path:inset(50% 0 0 0);
+}
+.bq-cancha::before{ /* arco de tres puntos */
+  content:''; position:absolute; left:50%; top:-12%; width:118%; height:98%;
+  transform:translateX(-50%); border:3px solid rgba(255,255,255,.6); border-radius:50%;
+  z-index:0; pointer-events:none;
+}
+
+/* Tablero con la palabra */
+.bq-tablero{
+  position:absolute; left:50%; top:3%; transform:translateX(-50%);
+  width:min(70%, 300px); min-height:22%; z-index:1;
+  display:flex; align-items:center; justify-content:center; gap:.4rem;
+  padding:.45rem .8rem 1.5rem; box-sizing:border-box;
+  background:#fff; border:3px solid var(--g-ink); border-radius:var(--g-r-sm);
+  box-shadow:0 4px 0 rgba(20,40,67,.35);
+}
+.bq-tablero::after{ /* cuadro rojo de tiro */
+  content:''; position:absolute; left:50%; bottom:8%; width:26%; height:22%;
+  transform:translateX(-50%); border:3px solid #dc2626; border-bottom:0; pointer-events:none;
+}
+.bq-palabra{
+  font-family:var(--font-head); font-weight:800; color:var(--g-ink);
+  font-size:clamp(1.15rem, 5.4vw, 1.6rem); line-height:1.1; text-align:center;
+  overflow-wrap:anywhere; position:relative; z-index:1;
+  animation:g-entrar var(--g-base) var(--g-spring) both;
+}
+.bq-audio{
+  flex-shrink:0; width:34px; height:34px; border:0; border-radius:50%;
+  background:var(--g-page); color:var(--g-brand); font-size:1rem; cursor:pointer;
+  display:grid; place-items:center; position:relative; z-index:1;
+}
+.bq-audio:focus-visible{ outline:3px solid var(--g-brand); outline-offset:2px; }
+
+/* Aro + red */
+.bq-aro{
+  position:absolute; left:50%; top:31%; width:24%; max-width:110px; aspect-ratio:4 / 1;
+  transform:translate(-50%, -50%); z-index:4; pointer-events:none;
+}
+.bq-aro-frente{
+  position:absolute; inset:0; z-index:5;
+  border:5px solid #ea580c; border-radius:50%;
+  box-shadow:0 2px 0 #9a3412;
+}
+.bq-red{
+  position:absolute; left:8%; right:8%; top:50%; height:210%; z-index:4;
+  clip-path:polygon(0 0, 100% 0, 82% 100%, 18% 100%);
+  background:
+    repeating-linear-gradient(60deg, rgba(255,255,255,.95) 0 2px, transparent 2px 9px),
+    repeating-linear-gradient(-60deg, rgba(255,255,255,.95) 0 2px, transparent 2px 9px);
+  transform-origin:top center;
+}
+.bq-swish .bq-red{ animation:bq-red .5s var(--g-spring); }
+.bq-clank .bq-aro{ animation:bq-aro .4s ease; }
+@keyframes bq-red{
+  0%{ transform:scaleY(1); } 35%{ transform:scaleY(1.35) scaleX(.9); } 100%{ transform:scaleY(1); }
+}
+@keyframes bq-aro{
+  0%,100%{ transform:translate(-50%, -50%) rotate(0); }
+  25%{ transform:translate(-50%, -50%) rotate(-5deg); }
+  60%{ transform:translate(-50%, -50%) rotate(4deg); }
+}
+
+/* Balón (dibujado con CSS: gajos con dos pseudo-elementos) */
+.bq-balon, .bq-balon-quieto{
+  display:block; width:38px; height:38px; border-radius:50%;
+  background:radial-gradient(circle at 32% 30%, #fdba74 0%, #f97316 45%, #c2410c 100%);
+  box-shadow:inset -3px -4px 0 rgba(0,0,0,.18), 0 3px 6px rgba(0,0,0,.25);
+  position:relative; overflow:hidden;
+}
+.bq-balon::before, .bq-balon-quieto::before{
+  content:''; position:absolute; left:50%; top:0; bottom:0; width:2px;
+  transform:translateX(-50%); background:#431407;
+}
+.bq-balon::after, .bq-balon-quieto::after{
+  content:''; position:absolute; inset:-30% 22%; border:2px solid #431407; border-radius:50%;
+}
+.bq-balon{ position:absolute; left:0; top:0; z-index:3; visibility:hidden; will-change:transform; }
+.bq-balon-quieto{ width:30px; height:30px; transition:opacity var(--g-fast) ease, transform var(--g-fast) ease; }
+.bq-balon-quieto.oculto{ opacity:0; transform:scale(.6); }
+
+/* Posiciones de tiro: el balón quieto + la traducción */
+.bq-spot{
+  position:absolute; z-index:2; transform:translate(-50%, -50%);
+  width:30%; display:flex; flex-direction:column; align-items:center; gap:.35rem;
+  padding:0; border:0; background:none; cursor:pointer; font-family:var(--font-body);
+}
+.bq-spot:disabled{ cursor:default; }
+.bq-texto{
+  display:block; width:100%; box-sizing:border-box;
+  border:2px solid var(--g-line); border-bottom:var(--g-depth) solid var(--g-edge);
+  border-radius:var(--g-r-md); background:var(--g-surface);
+  padding:.5rem .35rem; text-align:center;
+  font-size:clamp(.78rem, 3.4vw, .95rem); font-weight:700; color:var(--g-ink); line-height:1.2;
+  overflow-wrap:anywhere;
+  transition:transform var(--g-fast) ease, border-color var(--g-fast) ease,
+             background var(--g-fast) ease, color var(--g-fast) ease, opacity var(--g-base) ease;
+}
+.bq-spot:hover:not(:disabled) .bq-balon-quieto{ transform:translateY(-4px); }
+.bq-spot:active:not(:disabled) .bq-texto{ transform:translateY(3px); border-bottom-width:var(--g-depth-press); }
+.bq-spot:focus-visible{ outline:none; }
+.bq-spot:focus-visible .bq-texto{ outline:3px solid var(--g-brand); outline-offset:2px; }
+.bq-spot.sel .bq-texto{
+  border-color:var(--g-sel-borde); border-bottom-color:var(--g-sel-pata);
+  background:var(--g-sel-bg); color:var(--g-sel);
+}
+.bq-spot.ok .bq-texto{
+  border-color:var(--g-ok); border-bottom-color:var(--g-ok-pata);
+  background:var(--g-ok-bg); color:var(--g-ok); font-weight:800;
+  animation:g-rebote .34s var(--g-spring);
+}
+.bq-spot.mal .bq-texto{
+  border-color:var(--g-bad); border-bottom-color:var(--g-bad-pata);
+  background:var(--g-bad-bg); color:var(--g-bad); font-weight:800;
+  animation:g-sacudir .42s ease;
+}
+.bq-spot.gris{ opacity:.45; filter:grayscale(.35); }
+
+/* "+2" que sube al encestar */
+.bq-puntos{
+  position:absolute; left:50%; top:22%; z-index:6; pointer-events:none;
+  font-family:var(--font-head); font-weight:800; font-size:1.6rem; color:var(--g-ok);
+  text-shadow:0 2px 0 #fff, 0 0 8px rgba(255,255,255,.8);
+  animation:bq-puntos .9s var(--g-out) forwards;
+}
+@keyframes bq-puntos{
+  0%{ opacity:0; transform:translate(-50%, 10px) scale(.6); }
+  30%{ opacity:1; transform:translate(-50%, -6px) scale(1.15); }
+  100%{ opacity:0; transform:translate(-50%, -34px) scale(1); }
+}
+@media (max-width:380px){
+  .bq-balon-quieto{ width:24px; height:24px; }
+  .bq-texto{ padding:.4rem .25rem; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   RESPONSIVE
+   ════════════════════════════════════════════════════════════ */
+/* En una pantalla ancha (tablet/escritorio) las opciones largas caben de
+   a dos y no hay que hacer tanto scroll dentro del celular. */
+@media (min-width:520px){
+  .ar-opciones{ display:grid; grid-template-columns:1fr 1fr; }
+  .ar-opciones .ar-opcion:only-child{ grid-column:1 / -1; }
+}
+/* Celulares chicos: la grilla de tarjetas se aprieta. */
+@media (max-width:380px){
+  .imp-grid{ grid-template-columns:repeat(3, 1fr); gap:.35rem; }
+  .imp-tarjeta{ font-size:.72rem; padding:.45rem .3rem; }
+}
+
+/* ════════════════════════════════════════════════════════════
+   ACCESIBILIDAD — MOVIMIENTO REDUCIDO
+   Quien pidió en su sistema que no haya animaciones las recibe
+   apagadas. Se acorta la duración (en vez de borrar la animación)
+   porque todas terminan en su estado final: así el contenido queda
+   visible y en su lugar, sin transición.
+   ════════════════════════════════════════════════════════════ */
+@media (prefers-reduced-motion: reduce){
+  .ar-shell *,
+  .ar-shell *::before,
+  .ar-shell *::after{
+    animation-duration:.001ms !important;
+    animation-delay:0s !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+  }
+  /* Estos dos son puro adorno: se apagan del todo. */
+  .ar-barra span::after{ display:none; }
+  .ar-personaje{ animation:none; }
+  .ar-hoja{ animation:none; }
+}

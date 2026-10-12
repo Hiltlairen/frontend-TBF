@@ -1,0 +1,325 @@
+:root {
+  /* orange/green/red/gray-400: ajustados (punto 7, WCAG) respecto a
+     la paleta original — los tonos de antes rendían texto con muy
+     poco contraste sobre blanco (naranja: 2.65:1, verde sobre su
+     fondo claro: 3.00:1, gris-400: 2.56:1 — el mínimo AA para texto
+     normal es 4.5:1). Estos pasan 4.5:1+ en todos los usos reales del
+     proyecto (texto sobre blanco, texto blanco sobre el color como
+     fondo de botón, y texto sobre el "-bg" claro de cada uno) sin
+     cambiar la familia de color — siguen siendo naranja/verde/rojo/
+     gris, solo un escalón más oscuros/saturados.
+     Verificado con un script de contraste real (fórmula de WCAG 2.x),
+     no a ojo — ver README, punto 7. */
+  --orange:   #b45309;
+  --blue:     #142843;
+  --white:    #ffffff;
+  --gray-bg:  #f4f6f9;
+  --gray-200: #e2e8f0;
+  --gray-400: #64748b;
+  --gray-600: #475569;
+  --green:    #15803d;
+  --green-bg: #dcfce7;
+  --red:      #b91c1c;
+  --red-bg:   #fee2e2;
+  --radius:   12px;
+  --radius-sm:8px;
+  --shadow:   0 2px 8px rgba(0,0,0,.10);
+
+  /* aliases usados en todo el proyecto */
+  --bg:var(--gray-bg);--surface:var(--white);--card:var(--white);--border:var(--gray-200);
+  --accent:var(--orange);--accent2:var(--red);--ok:var(--green);--warn:var(--orange);
+  --txt:var(--blue);--txt-muted:var(--gray-600);
+  --font-head:'Syne',sans-serif;--font-body:'DM Sans',sans-serif;--font-lyric:'Lora',serif;
+
+  /* ── Tokens del tema (punto 8: claro/oscuro) ──────────────
+     Ninguno de estos cambia el aspecto claro actual: en claro valen
+     exactamente el color que estaba hardcodeado en cada sitio. Existen
+     para que el tema oscuro pueda redefinirlos en un solo lugar.
+     Regla para no romper nada:
+       · fondo de una superficie  → var(--surface)
+       · texto ENCIMA de un color de acento (naranja/rojo/verde)
+         → var(--white), que es literal y no se retematiza
+       · texto de acento sobre fondo claro → var(--accent-txt)
+       · relleno suave de "activo/seleccionado" → var(--accent-tint) */
+  --accent-tint: #fff7ee;   /* relleno naranja muy suave (opción activa) */
+  --accent-txt:  var(--orange); /* naranja cuando es TEXTO, no fondo */
+  --chip-bg:     var(--blue);   /* chip sólido: código de sala, filtro activo */
+  --chip-txt:    var(--white);
+  --warn-bg:     #fff1e0;   /* chip de advertencia */
+  --warn-txt:    var(--orange);
+  --pend-bg:     #fef3c7;   /* chip "por revisar" de curaduría */
+  --bar-alto:    #bbf7d0;   /* barras de "carril donde terminan" */
+  --bar-medio:   #fed7aa;
+  --bar-bajo:    #fecaca;
+  --ok-soft-txt: var(--green);  /* texto verde sobre su relleno suave */
+  --bad-soft-txt:var(--red);
+
+  --sidebar-w: 260px;
+  --topbar-h: 60px;
+}
+
+/* ============================================================
+   TEMA OSCURO
+   ============================================================
+   Se activa desde <html data-tema="oscuro"> (lo escribe ThemeContext).
+   Solo se redefinen tokens: ningún componente necesita saber en qué tema
+   está. Los colores de acento (--orange/--green/--red) NO cambian porque
+   se usan como relleno de botones con texto blanco encima, y ese blanco
+   necesita un fondo oscuro para pasar AA en los dos temas.
+   Los contrastes de este bloque están calculados con la fórmula de WCAG
+   2.x y pasan 4.5:1 en sus usos reales. */
+[data-tema="oscuro"] {
+  color-scheme: dark;
+
+  /* Fondo de página casi negro azulado; superficies un escalón más
+     claras para que las tarjetas se despeguen del fondo. */
+  --gray-bg:  #0e1626;
+  --gray-200: #2c3a55;   /* bordes y rellenos suaves */
+  --gray-400: #8fa0b8;   /* atenuado sobre fondo oscuro */
+  --gray-600: #b9c6da;   /* texto secundario */
+
+  --green-bg: #14321f;
+  --red-bg:   #3a1a1c;
+
+  --bg:        var(--gray-bg);
+  --surface:   #16213a;
+  --card:      #16213a;
+  --border:    var(--gray-200);
+  --txt:       #e8eefc;
+  --txt-muted: #a8b6cd;
+  --shadow:    0 2px 10px rgba(0, 0, 0, .5);
+
+  /* Rellenos y textos que en claro eran casi blancos: en oscuro van a la
+     inversa (relleno apagado + texto vivo). */
+  --accent-tint: #2e2415;
+  --accent-txt:  #fbbf24;
+  --chip-bg:     #33415a;
+  --chip-txt:    #f1f5f9;
+  --warn-bg:     #3a2a12;
+  --warn-txt:    #fbbf24;
+  --pend-bg:     #3a2e12;
+  --bar-alto:    #166534;
+  --bar-medio:   #9a3412;
+  --bar-bajo:    #7f1d1d;
+  --ok-soft-txt:  #4ade80;
+  --bad-soft-txt: #f87171;
+}
+
+/* ============================================================
+   EL JUEGO NO SE RETEMATIZA
+   ============================================================
+   La partida del estudiante es su propio mundo visual: escena oscura
+   fija (#0b1220) y un "celular" con pantalla clara. No es una superficie
+   de la aplicación, así que se ve igual con los dos temas. Estas raíces
+   devuelven los tokens a sus valores claros para que ActivityRunner.css
+   (que dibuja dentro del celular) no herede la paleta oscura y termine
+   con texto oscuro sobre fondo oscuro. */
+[data-tema="oscuro"] .escena-shell,
+[data-tema="oscuro"] .juego-simple,
+[data-tema="oscuro"] .juego-centro,
+[data-tema="oscuro"] .tel-fondo,
+[data-tema="oscuro"] .tel-pantalla {
+  --gray-bg:   #f4f6f9;
+  --gray-200:  #e2e8f0;
+  --gray-400:  #64748b;
+  --gray-600:  #475569;
+  --green-bg:  #dcfce7;
+  --red-bg:    #fee2e2;
+  --bg:        #f4f6f9;
+  --surface:   #ffffff;
+  --border:    #e2e8f0;
+  --txt:       #142843;
+  --txt-muted: #475569;
+}
+
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--txt);
+  font-family: var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4 {
+  font-family: var(--font-head);
+  color: var(--txt);
+  margin: 0 0 .4rem 0;
+}
+
+p { margin: 0 0 .5rem 0; }
+
+button {
+  font-family: var(--font-body);
+  cursor: pointer;
+}
+
+input, select, textarea {
+  font-family: var(--font-body);
+  font-size: .9rem;
+}
+
+a { color: inherit; text-decoration: none; }
+
+/* -------------------- Utilidades -------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .4rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: .6rem 1rem;
+  font-size: .85rem;
+  font-weight: 600;
+  background: var(--gray-200);
+  color: var(--txt);
+  transition: filter .15s ease, transform .05s ease;
+}
+.btn:hover { filter: brightness(0.96); }
+.btn:active { transform: scale(0.98); }
+.btn:disabled { opacity: .5; cursor: not-allowed; }
+
+.btn-primary { background: var(--accent); color: var(--white); }
+.btn-danger  { background: var(--accent2); color: var(--white); }
+.btn-outline { background: transparent; border: 1px solid var(--border); }
+.btn-sm { padding: .4rem .7rem; font-size: .78rem; }
+.btn-block { width: 100%; justify-content: center; }
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 1.25rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  border-radius: 999px;
+  padding: .2rem .6rem;
+  font-size: .72rem;
+  font-weight: 700;
+}
+.badge-ok    { background: var(--green-bg); color: var(--ok-soft-txt); }
+.badge-warn  { background: var(--warn-bg); color: var(--warn-txt); }
+.badge-error { background: var(--red-bg); color: var(--bad-soft-txt); }
+.badge-muted { background: var(--gray-200); color: var(--gray-600); }
+
+.grid-2 { display: grid; grid-template-columns: 1fr; gap: 1rem; }
+@media (min-width: 900px) {
+  .grid-2 { grid-template-columns: 1fr 1fr; }
+}
+
+.section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: .75rem;
+}
+
+.muted { color: var(--txt-muted); font-size: .85rem; }
+
+.field { display: flex; flex-direction: column; gap: .35rem; margin-bottom: .9rem; }
+.field label { font-size: .8rem; font-weight: 600; color: var(--txt-muted); }
+.field input,
+.field select,
+.field textarea {
+  padding: .55rem .7rem;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  color: var(--txt);
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+
+.table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+}
+
+table.data-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: .85rem;
+  min-width: 640px;
+}
+table.data-table th {
+  text-align: left;
+  background: var(--bg);
+  color: var(--txt-muted);
+  font-weight: 700;
+  padding: .65rem .8rem;
+  border-bottom: 1px solid var(--border);
+  white-space: nowrap;
+}
+table.data-table td {
+  padding: .6rem .8rem;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+table.data-table tr:last-child td { border-bottom: none; }
+table.data-table tr:hover td { background: var(--bg); }
+
+.empty-state {
+  text-align: center;
+  padding: 2.5rem 1rem;
+  color: var(--txt-muted);
+}
+
+/* ════════ Botón que espera a la IA (components/ui/BotonIA.jsx) ════════
+   Usa currentColor para el anillo y los puntos, así sirve igual sobre el
+   naranja del docente que sobre el fondo oscuro del estudiante. El
+   brillo (::after) recorre el botón de izquierda a derecha. */
+.btn-ia{ position:relative; overflow:hidden; }
+.btn-ia.cargando{
+  display:inline-flex; align-items:center; justify-content:center; gap:.55rem;
+  cursor:progress;
+}
+/* El botón queda bloqueado, pero no se "apaga": la espera tiene que verse
+   como algo que está pasando, no como un botón deshabilitado. */
+.btn-ia.cargando:disabled{ opacity:1; }
+.btn-ia.cargando::after{
+  content:''; position:absolute; inset:0; pointer-events:none;
+  background:linear-gradient(100deg, transparent 20%, rgba(255,255,255,.28) 50%, transparent 80%);
+  transform:translateX(-100%);
+  animation:btn-ia-brillo 1.6s ease-in-out infinite;
+}
+.btn-ia-anillo{
+  width:1.05em; height:1.05em; flex-shrink:0; border-radius:50%;
+  border:2.5px solid currentColor; border-right-color:transparent;
+  animation:btn-ia-girar .75s linear infinite;
+}
+.btn-ia-puntos{ display:inline-flex; gap:.18em; margin-left:-.25em; }
+.btn-ia-puntos i{
+  width:.3em; height:.3em; border-radius:50%; background:currentColor;
+  animation:btn-ia-punto 1.1s ease-in-out infinite;
+}
+.btn-ia-puntos i:nth-child(2){ animation-delay:.15s; }
+.btn-ia-puntos i:nth-child(3){ animation-delay:.3s; }
+
+@keyframes btn-ia-girar{ to{ transform:rotate(360deg); } }
+@keyframes btn-ia-brillo{ to{ transform:translateX(100%); } }
+@keyframes btn-ia-punto{
+  0%,80%,100%{ opacity:.25; transform:translateY(0); }
+  40%{ opacity:1; transform:translateY(-.22em); }
+}
+
+/* Movimiento reducido: sin brillo ni saltos; el anillo gira lento para que
+   siga habiendo una señal de "está trabajando". */
+@media (prefers-reduced-motion: reduce){
+  .btn-ia.cargando::after{ display:none; }
+  .btn-ia-anillo{ animation-duration:2.4s; }
+  .btn-ia-puntos i{ animation:none; opacity:.7; }
+}

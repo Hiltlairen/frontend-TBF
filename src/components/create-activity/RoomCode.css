@@ -1,0 +1,57 @@
+.room-code-box {
+  margin-top: 1rem;
+  background: linear-gradient(135deg, var(--accent-tint) 0%, var(--surface) 100%);
+  border: 2px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 1.1rem 1.2rem;
+  text-align: center;
+}
+
+.room-code-label {
+  font-size: .72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  color: var(--txt-muted);
+  margin-bottom: .5rem;
+}
+
+.room-code-digits {
+  font-family: var(--font-head);
+  font-size: 2.8rem;
+  font-weight: 800;
+  letter-spacing: .25em;
+  color: var(--accent-txt);
+  line-height: 1;
+  margin-bottom: .5rem;
+}
+
+.room-code-hint {
+  margin-bottom: .75rem;
+}
+
+.room-code-actions {
+  display: flex;
+  justify-content: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+/* ── Código de sala ── */
+.room-code{ text-align:center; padding:.5rem 0; }
+.room-code-label{ font-size:.8rem; color:var(--txt-muted); margin:0 0 .5rem; }
+.room-code-digits{
+  display:flex; gap:.4rem; justify-content:center; cursor:pointer; flex-wrap:wrap;
+}
+.room-code-digits span{
+  width:clamp(38px,11vw,54px); height:clamp(48px,14vw,68px);
+  display:grid; place-items:center; background:var(--chip-bg); color:var(--chip-txt);
+  border-radius:10px; font-size:clamp(1.4rem,6vw,2rem); font-weight:800;
+  font-family:var(--font-head);
+}
+.room-code-copy{
+  margin-top:.7rem; border:1px solid var(--border); background:var(--bg);
+  border-radius:999px; padding:.45rem 1rem; font-size:.82rem; cursor:pointer; color:var(--txt);
+  min-height:40px;
+}
+.room-code-hint{ font-size:.76rem; color:var(--txt-muted); margin:.6rem auto 0; max-width:400px; }

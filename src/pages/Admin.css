@@ -1,0 +1,133 @@
+/* ============================================================
+   Admin.css — Panel de administración
+   ============================================================ */
+.adm-page{ display:flex; flex-direction:column; gap:.9rem; }
+.adm-page h2{ font-family:var(--font-head); margin:0; color:var(--txt); }
+.adm-page>.muted{ margin:0; font-size:.86rem; }
+
+.adm-metricas{
+  display:grid; gap:.6rem; grid-template-columns:repeat(auto-fit, minmax(108px,1fr));
+}
+.adm-metricas div{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:.7rem .8rem; text-align:center;
+}
+.adm-metricas div.alerta{ border-color:var(--accent); background:var(--accent-tint); }
+.adm-metricas strong{ display:block; font-size:1.5rem; font-family:var(--font-head); color:var(--txt); }
+.adm-metricas small{ color:var(--txt-muted); font-size:.74rem; }
+
+.adm-barra{ display:flex; gap:.5rem; }
+.adm-btn{
+  min-height:44px; border:1px solid var(--border); background:var(--surface); color:var(--txt);
+  border-radius:var(--radius-sm); padding:.5rem 1rem; cursor:pointer;
+  font-family:var(--font-body); font-size:.9rem; font-weight:600;
+}
+.adm-btn-ok{ background:var(--accent); color:#fff; border-color:transparent; }
+
+.adm-form{
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:1rem; display:grid; gap:.7rem; grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  align-items:end;
+}
+.adm-form label{ display:flex; flex-direction:column; gap:.3rem; }
+.adm-form span{ font-size:.78rem; font-weight:600; color:var(--txt-muted); }
+.adm-form input,.adm-form select{
+  border:1px solid var(--border); border-radius:var(--radius-sm); padding:.6rem .7rem;
+  font-family:var(--font-body); font-size:.92rem; min-height:44px; color:var(--txt);
+  background:var(--surface);
+}
+.adm-form input:focus,.adm-form select:focus{ outline:2px solid var(--accent); outline-offset:1px; }
+
+.adm-tabla-scroll{ overflow-x:auto; -webkit-overflow-scrolling:touch; }
+.adm-tabla{ width:100%; border-collapse:collapse; min-width:720px; font-size:.86rem; }
+.adm-tabla th,.adm-tabla td{
+  border-bottom:1px solid var(--border); padding:.6rem .5rem; text-align:left; vertical-align:middle;
+}
+.adm-tabla thead th{ font-size:.74rem; color:var(--txt-muted); text-transform:uppercase; }
+.adm-tabla tr.inactivo{ opacity:.5; }
+.adm-email{ color:var(--txt-muted); font-size:.8rem; }
+.adm-tabla select{
+  border:1px solid var(--border); border-radius:6px; padding:.3rem .4rem;
+  font-family:var(--font-body); font-size:.82rem; background:var(--surface); color:var(--txt);
+}
+.adm-pill{
+  display:inline-block; border:0; border-radius:99px; padding:.25rem .7rem;
+  font-size:.74rem; font-weight:700; font-family:var(--font-body);
+}
+.adm-pill.on{ background:var(--green-bg); color:var(--ok-soft-txt); }
+.adm-pill.off{ background:var(--red-bg); color:var(--bad-soft-txt); }
+
+.adm-usuario-celda{ display:flex; align-items:center; gap:.55rem; }
+.adm-avatar{
+  width:34px; height:34px; border-radius:50%; flex-shrink:0; object-fit:cover;
+  display:grid; place-items:center;
+}
+.adm-avatar-ini{
+  background:var(--accent); color:var(--white); font-weight:800; font-size:.9rem;
+  font-family:var(--font-head);
+}
+
+.adm-baja{
+  border:1px solid var(--border); background:var(--surface); color:var(--bad-soft-txt);
+  font-size:.78rem; font-weight:700; cursor:pointer; font-family:var(--font-body);
+  border-radius:8px; padding:.4rem .7rem; white-space:nowrap;
+}
+.adm-baja:hover{ background:var(--red-bg); border-color:var(--red); }
+.adm-baja.reactivar{ color:var(--ok-soft-txt); }
+.adm-baja.reactivar:hover{ background:var(--green-bg); border-color:var(--green); }
+
+/* ── Mi perfil ── */
+.perfil-page{ max-width:560px; }
+.perfil-card{ display:flex; flex-direction:column; gap:1rem; }
+.perfil-foto-fila{ display:flex; align-items:center; gap:1rem; }
+.perfil-foto{
+  width:84px; height:84px; border-radius:50%; object-fit:cover; flex-shrink:0;
+  border:2px solid var(--border);
+}
+.perfil-foto-ini{
+  display:grid; place-items:center; background:var(--accent); color:var(--white);
+  font-family:var(--font-head); font-weight:800; font-size:2rem; border-color:transparent;
+}
+.perfil-foto-acc{ display:flex; flex-direction:column; gap:.4rem; align-items:flex-start; }
+.perfil-quitar{
+  border:0; background:transparent; color:var(--bad-soft-txt); font-size:.8rem; cursor:pointer;
+  font-family:var(--font-body); padding:0;
+}
+.perfil-pass{
+  border:1px solid var(--border); border-radius:var(--radius-sm); padding:.9rem 1rem .4rem;
+  margin:0;
+}
+.perfil-pass legend{ font-size:.82rem; font-weight:700; color:var(--txt-muted); padding:0 .4rem; }
+
+/* ── Clases (cohortes) ── */
+.cls-acciones{ display:flex; gap:.4rem; flex-wrap:wrap; }
+.cls-roster{
+  background:var(--bg); border:1px dashed var(--border); border-radius:var(--radius);
+  padding:1rem; display:flex; flex-direction:column; gap:.9rem;
+}
+.cls-roster-agregar{ display:flex; flex-direction:column; gap:.7rem; align-items:stretch; }
+.cls-import-cab{ display:flex; flex-direction:column; gap:.2rem; }
+.cls-import-cab > span{ font-size:.78rem; font-weight:600; color:var(--txt-muted); }
+.cls-import-cab > small{ font-size:.78rem; }
+.cls-import-grid input{
+  width:100%; border:1px solid var(--border); border-radius:var(--radius-sm); padding:.4rem .55rem;
+  font-family:var(--font-body); font-size:.85rem; color:var(--txt); background:var(--surface);
+}
+.cls-fila-quitar{
+  border:none; background:transparent; color:var(--txt-muted); cursor:pointer;
+  font-size:.9rem; line-height:1; padding:.3rem .4rem;
+}
+.cls-fila-quitar:hover{ color:var(--bad-soft-txt); }
+.cls-fila-invalida{ background:var(--red-bg); }
+.cls-import-revision{ display:flex; flex-direction:column; gap:.5rem; }
+.cls-codigos-nuevos{
+  background:var(--green-bg); border:1px solid var(--green); border-radius:var(--radius-sm);
+  padding:.8rem;
+}
+.cls-codigos-cab{ display:flex; align-items:center; justify-content:space-between; gap:.6rem; margin-bottom:.5rem; }
+.cls-codigos-lista{ list-style:none; margin:0; padding:0; display:grid; gap:.3rem; grid-template-columns:repeat(auto-fill,minmax(200px,1fr)); }
+.cls-codigos-lista li{ display:flex; flex-wrap:wrap; justify-content:space-between; gap:.4rem; font-size:.85rem; }
+.cls-codigos-lista code{ font-weight:700; letter-spacing:.04em; }
+.cls-codigos-lista small{ flex-basis:100%; }
+.cls-tabla-scroll{ overflow-x:auto; }
+.cls-tabla-scroll .adm-tabla{ min-width:480px; }

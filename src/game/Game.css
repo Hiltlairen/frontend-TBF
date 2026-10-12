@@ -1,0 +1,462 @@
+/* ============================================================
+   Game.css — Escenario, celular y pantallas de la partida
+   Mobile-first: todo se dimensiona con dvh/clamp para que
+   funcione igual en celular que en PC.
+   ============================================================ */
+
+.escena-shell{
+  min-height:100dvh; display:flex; flex-direction:column;
+  background:#0b1220; color:#e2e8f0;
+}
+
+/* ── HUD superior ── */
+.escena-hud{
+  display:flex; align-items:center; justify-content:space-between; gap:.75rem;
+  padding:.75rem clamp(.75rem,3vw,1.25rem);
+  background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.03));
+  border-bottom:1px solid rgba(255,255,255,.08);
+  backdrop-filter:blur(6px);
+}
+.escena-lugar{ display:flex; align-items:center; gap:.6rem; min-width:0; }
+.escena-emoji{
+  font-size:1.5rem; line-height:1;
+  filter:drop-shadow(0 3px 6px rgba(0,0,0,.5));
+}
+.escena-lugar strong{ display:block; font-family:var(--font-head); font-size:.95rem; }
+.escena-lugar small{ display:block; color:var(--gray-400); font-size:.76rem;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:48vw; }
+
+/* Migas de etapa: cada cuadrito es una etapa del recorrido. */
+.escena-etapa{ display:flex; align-items:center; gap:.25rem; flex-shrink:0; }
+.escena-etapa span{
+  width:16px; height:6px; border-radius:99px; background:rgba(255,255,255,.18);
+  transition:background .3s ease, box-shadow .3s ease, transform .3s cubic-bezier(.34,1.56,.64,1);
+}
+.escena-etapa span.lleno{
+  background:linear-gradient(180deg,#fb923c,var(--orange));
+  box-shadow:0 0 10px rgba(249,115,22,.6);
+  transform:scaleY(1.25);
+}
+.escena-etapa em{ font-style:normal; font-size:.75rem; color:var(--gray-400); margin-left:.35rem; }
+
+/* ── Crédito: lección + docente autor ── */
+.escena-credito,
+.simple-credito{
+  display:flex; flex-wrap:wrap; align-items:center; gap:.4rem .9rem;
+  padding:.5rem clamp(.75rem,3vw,1.25rem);
+  background:rgba(255,255,255,.03); border-bottom:1px solid rgba(255,255,255,.06);
+  font-size:.78rem; color:#cbd5e1;
+}
+.simple-credito{
+  border-bottom:0; justify-content:center;
+  background:#0b1220;
+}
+.escena-leccion,
+.simple-leccion{
+  background:rgba(255,255,255,.08); border-radius:99px; padding:.24rem .7rem;
+  color:#e2e8f0; font-weight:600;
+}
+.escena-autor,
+.simple-autor{ display:inline-flex; align-items:center; gap:.4rem; color:var(--gray-400); }
+.escena-autor-foto,
+.simple-autor-foto{ width:24px; height:24px; border-radius:50%; object-fit:cover; flex-shrink:0; }
+.escena-autor-ini,
+.simple-autor-ini{
+  display:grid; place-items:center; background:var(--orange); color:#fff;
+  font-family:var(--font-head); font-weight:800; font-size:.72rem;
+}
+
+/* ── Lienzo del escenario ── */
+.escena-lienzo{
+  position:relative; flex:1; min-height:clamp(220px, 42dvh, 420px);
+  overflow:hidden;
+}
+.escena-suelo{
+  position:absolute; left:0; right:0; bottom:0; height:22%;
+  background:rgba(0,0,0,.35); border-top:2px solid rgba(255,255,255,.12);
+}
+/* El destino late: es la señal de "camina hacia acá". El keyframe repite
+   el translateX(-50%) porque ese transform es el que lo centra sobre la
+   posición que le pone el motor en `left`. */
+@keyframes g-destino{
+  0%,100%{ transform:translateX(-50%) translateY(0) scale(1); }
+  50%{ transform:translateX(-50%) translateY(-7px) scale(1.06); }
+}
+.escena-destino{
+  position:absolute; bottom:22%; transform:translateX(-50%);
+  font-size:clamp(1.6rem,6vw,2.4rem); opacity:.9;
+  animation:g-destino 1.9s ease-in-out infinite;
+  filter:drop-shadow(0 6px 10px rgba(0,0,0,.5));
+}
+.escena-npc{ position:absolute; bottom:22%; transform:translateX(-50%); text-align:center; }
+.escena-npc-cuerpo{
+  font-size:clamp(2rem,8vw,3.2rem);
+  filter:drop-shadow(0 6px 10px rgba(0,0,0,.5));
+}
+@keyframes g-globo{
+  from{ transform:translateX(-50%) scale(.55); opacity:0; }
+  to{ transform:translateX(-50%) scale(1); opacity:1; }
+}
+.escena-globo{
+  position:absolute; top:-1.6rem; left:50%;
+  background:#fff; color:#142843; border-radius:12px; padding:.15rem .55rem; font-size:.8rem;
+  font-weight:600; white-space:nowrap;
+  box-shadow:0 4px 12px rgba(0,0,0,.35);
+  animation:g-globo .34s cubic-bezier(.34,1.56,.64,1) both;
+}
+.escena-señal{
+  position:absolute; top:.75rem; left:50%; transform:translateX(-50%);
+  background:rgba(0,0,0,.5); border:1px solid rgba(255,255,255,.15);
+  border-radius:999px; padding:.3rem .8rem; font-size:.78rem; color:#cbd5e1;
+}
+.escena-personaje{
+  position:absolute; bottom:22%; transform:translateX(-50%);
+  transition:none; /* la posición la mueve el game loop */
+}
+/* La sombra no es adorno: sin ella el sprite parece flotar sobre el piso. */
+.escena-personaje img{
+  height:clamp(80px,18vw,128px); width:auto;
+  image-rendering:pixelated;
+  filter:drop-shadow(0 8px 10px rgba(0,0,0,.55));
+}
+.escena-guion{
+  position:absolute; left:50%; bottom:.75rem; transform:translateX(-50%);
+  margin:0; max-width:min(90%,560px); text-align:center;
+  background:rgba(0,0,0,.55); border-radius:10px; padding:.45rem .8rem;
+  font-size:clamp(.78rem,2.6vw,.9rem); color:#e2e8f0;
+}
+
+/* ── Celular ── */
+.tel-fondo{
+  position:fixed; inset:0; z-index:60; display:grid; place-items:center;
+  background:rgba(4,8,16,0); backdrop-filter:blur(0px);
+  transition:background .3s ease, backdrop-filter .3s ease;
+  padding:clamp(0px,2vh,1.5rem);
+}
+.tel-fondo.in{ background:rgba(4,8,16,.72); backdrop-filter:blur(3px); }
+
+.tel{
+  width:min(420px,100%); height:min(760px,100dvh);
+  background:#0f172a; border-radius:clamp(0px,4vw,28px);
+  border:1px solid rgba(255,255,255,.12);
+  box-shadow:0 20px 60px rgba(0,0,0,.55);
+  display:flex; flex-direction:column; overflow:hidden;
+  transform:translateY(100%); transition:transform .34s cubic-bezier(.22,1,.36,1);
+}
+.tel.in{ transform:translateY(0); }
+
+.tel-muesca{
+  width:110px; height:20px; background:#0f172a; border-radius:0 0 14px 14px;
+  margin:0 auto; flex-shrink:0;
+}
+.tel-barra{
+  display:flex; align-items:center; gap:.6rem;
+  padding:.5rem .85rem; border-bottom:1px solid rgba(255,255,255,.1);
+  flex-shrink:0;
+}
+.tel-barra.llamada{ background:rgba(22,163,74,.18); }
+/* Avatar que "late" mientras dura la llamada: da la sensación de que hay
+   alguien del otro lado y no una pantalla congelada. */
+@keyframes g-llamada{ 0%,100%{ transform:scale(1); } 50%{ transform:scale(1.14); } }
+.tel-barra.llamada .tel-avatar{ animation:g-llamada 1.7s ease-in-out infinite; }
+.tel-avatar{ font-size:1.4rem; }
+.tel-contacto strong{ display:block; font-size:.9rem; color:#e2e8f0; }
+.tel-contacto small{ color:#86efac; font-size:.72rem; }
+.tel-titulo{
+  font-family:var(--font-head); font-size:.9rem; color:#e2e8f0;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.tel-pantalla{
+  flex:1; min-height:0; overflow:hidden; display:flex; flex-direction:column;
+  background:var(--white); color:var(--blue);
+}
+.tel-home{
+  height:5px; width:110px; background:rgba(255,255,255,.35);
+  border-radius:99px; margin:.45rem auto; flex-shrink:0;
+}
+
+/* ── Pantallas de estado ── */
+.juego-centro{
+  min-height:100dvh; display:flex; flex-direction:column; gap:.9rem;
+  align-items:center; justify-content:center; text-align:center;
+  padding:1.5rem; background:#0b1220; color:#e2e8f0;
+}
+.juego-spinner{
+  width:34px; height:34px; border-radius:50%;
+  border:3px solid rgba(255,255,255,.18); border-top-color:var(--orange);
+  animation:girar .8s linear infinite;
+}
+@keyframes girar{ to{ transform:rotate(360deg); } }
+
+.juego-error h2{ font-family:var(--font-head); margin:0; }
+.juego-cara{ font-size:3.5rem; }
+
+/* Botón de las pantallas de estado. Antes no tenía estilo propio: la clase
+   .ar-btn no existía en NINGÚN CSS, así que el navegador dibujaba su botón
+   gris por defecto — de ahí que el botón se viera "simple". */
+.ar-btn{
+  min-height:48px; padding:.75rem 1.5rem;
+  display:inline-flex; align-items:center; justify-content:center; gap:.45rem;
+  border:1px solid rgba(255,255,255,.18); border-radius:12px;
+  background:rgba(255,255,255,.08); color:#e2e8f0;
+  font-family:var(--font-body); font-size:.95rem; font-weight:700; cursor:pointer;
+  transition:background .15s ease, transform .1s ease;
+}
+.ar-btn:hover{ background:rgba(255,255,255,.14); }
+.ar-btn:active{ transform:scale(.98); }
+.ar-btn:focus-visible{ outline:3px solid #fdba74; outline-offset:2px; }
+
+/* ════════ Pantalla final (resultado de la actividad) ════════
+   Vive sobre el fondo oscuro del juego, así que usa colores propios en vez
+   de los tokens del tema claro/oscuro: se ve igual en los dos temas, igual
+   que el resto de la partida. */
+.juego-fin{ padding:1.25rem 1rem; }
+
+.juego-fin-card{
+  position:relative; width:min(460px,100%);
+  display:flex; flex-direction:column; align-items:center; gap:.5rem;
+  background:linear-gradient(180deg,#17233c 0%,#101a2d 100%);
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:22px; padding:1.7rem 1.2rem 1.35rem;
+  box-shadow:0 24px 60px rgba(0,0,0,.55);
+  animation:subir .32s ease both;
+}
+@keyframes subir{ from{ opacity:0; transform:translateY(14px); } }
+
+/* Franja superior: color del tramo alcanzado. */
+.juego-fin-card::before{
+  content:''; position:absolute; inset:0 0 auto 0; height:5px;
+  border-radius:22px 22px 0 0; background:#f59e0b;
+}
+.juego-fin-card.alto::before     { background:#22c55e; }
+.juego-fin-card.medio::before    { background:#f59e0b; }
+.juego-fin-card.bajo::before     { background:#ef4444; }
+.juego-fin-card.pendiente::before{ background:#38bdf8; }
+
+.juego-fin-card .juego-cara{
+  font-size:3.1rem; line-height:1;
+  filter:drop-shadow(0 6px 14px rgba(0,0,0,.5));
+}
+
+.juego-fin h2{ font-family:var(--font-head); margin:0; font-size:1.5rem; }
+
+.juego-fin-sub{ margin:0; max-width:34ch; color:#94a3b8; font-size:.9rem; line-height:1.4; }
+
+/* ── Nota + barra de progreso ── */
+.juego-nota-caja{
+  width:100%; display:flex; flex-direction:column; align-items:center;
+  gap:.5rem; margin-top:.3rem;
+}
+.juego-nota{
+  font-size:3.2rem; font-weight:800; margin:0; font-family:var(--font-head);
+  line-height:1; font-variant-numeric:tabular-nums;
+}
+.juego-nota small{ font-size:1rem; color:var(--gray-400); }
+.juego-fin-card.alto  .juego-nota{ color:#4ade80; }
+.juego-fin-card.medio .juego-nota{ color:#fbbf24; }
+.juego-fin-card.bajo  .juego-nota{ color:#f87171; }
+
+.juego-nota-barra{
+  width:100%; max-width:260px; height:10px; border-radius:99px;
+  background:rgba(255,255,255,.10); overflow:hidden;
+}
+.juego-nota-barra span{
+  display:block; height:100%; border-radius:99px; background:#f59e0b;
+  transition:width .7s cubic-bezier(.22,1,.36,1);
+}
+.juego-fin-card.alto  .juego-nota-barra span{ background:#22c55e; }
+.juego-fin-card.medio .juego-nota-barra span{ background:#f59e0b; }
+.juego-fin-card.bajo  .juego-nota-barra span{ background:#ef4444; }
+
+.juego-fin-detalle{ color:var(--gray-400); font-size:.75rem; }
+
+.juego-fin-recorrido-titulo{
+  margin:.9rem 0 0; font-size:.7rem; font-weight:700; letter-spacing:.09em;
+  text-transform:uppercase; color:var(--gray-400);
+}
+
+/* ── Botón principal de la pantalla final ──
+   El texto va oscuro sobre el naranja a propósito: blanco sobre #f97316 da
+   2.8:1, y el azul oscuro da 6.3:1 (pasa AA). */
+.juego-btn-salir{
+  margin-top:1.1rem; width:100%; max-width:300px; min-height:52px;
+  display:inline-flex; align-items:center; justify-content:center; gap:.5rem;
+  border:0; border-radius:14px; cursor:pointer;
+  font-family:var(--font-body); font-size:1rem; font-weight:800; letter-spacing:.02em;
+  color:#0b1220;
+  background:linear-gradient(180deg,#fb923c 0%,#f97316 100%);
+  box-shadow:0 10px 24px rgba(249,115,22,.35), inset 0 1px 0 rgba(255,255,255,.35);
+  transition:transform .12s ease, box-shadow .2s ease, filter .15s ease;
+}
+.juego-btn-salir:hover{
+  filter:brightness(1.06);
+  box-shadow:0 14px 30px rgba(249,115,22,.45), inset 0 1px 0 rgba(255,255,255,.4);
+}
+.juego-btn-salir:active{ transform:translateY(2px) scale(.99); }
+.juego-btn-salir:focus-visible{ outline:3px solid #fdba74; outline-offset:3px; }
+
+/* ── Resumen de errores (ResumenFinal.jsx) ──
+   Va dentro de la tarjeta final: misma paleta oscura propia. El verde y
+   el rojo son los tonos claros (#4ade80 / #f87171), que sobre #17233c
+   pasan AA para texto normal. */
+.rep{ width:100%; display:flex; flex-direction:column; align-items:center; gap:.45rem; }
+
+.rep-chips{
+  list-style:none; padding:0; margin:.2rem 0 0;
+  display:flex; flex-wrap:wrap; justify-content:center; gap:.35rem;
+}
+.rep-chips li{
+  padding:.25rem .65rem; border-radius:99px; font-size:.78rem; font-weight:600;
+  background:rgba(34,197,94,.14); color:#86efac; border:1px solid rgba(34,197,94,.3);
+  animation:rep-entrar .35s ease both;
+}
+
+.rep-perfecto{ margin:.6rem 0 0; color:#86efac; font-weight:700; }
+
+.rep-errores{
+  list-style:none; padding:0; margin:.2rem 0 0;
+  width:100%; display:flex; flex-direction:column; gap:.45rem; text-align:left;
+}
+.rep-error{
+  background:rgba(255,255,255,.05); border-radius:12px; padding:.6rem .75rem;
+  border-left:3px solid #ef4444;
+  animation:rep-entrar .35s ease both;
+}
+.rep-error:nth-child(2){ animation-delay:.05s; }
+.rep-error:nth-child(3){ animation-delay:.1s; }
+.rep-error:nth-child(n+4){ animation-delay:.15s; }
+.rep-pregunta{ margin:0 0 .3rem; font-size:.85rem; color:#e2e8f0; font-weight:600; }
+.rep-linea{ margin:0; font-size:.82rem; line-height:1.4; }
+.rep-linea b{ font-weight:700; }
+.rep-linea.ok{ color:#4ade80; }
+.rep-linea.mal{ color:#f87171; }
+.rep-linea.mal i{ color:#94a3b8; }
+.rep-trad{ margin:.3rem 0 0; font-size:.78rem; color:#94a3b8; }
+
+@keyframes rep-entrar{ from{ opacity:0; transform:translateY(6px); } }
+
+.rep-acciones{
+  width:100%; display:flex; flex-direction:column; align-items:center; gap:.5rem;
+  margin-top:.6rem;
+}
+.rep-btn{
+  width:100%; max-width:300px; min-height:48px; padding:.65rem 1rem;
+  border-radius:14px; border:1px solid rgba(255,255,255,.18);
+  background:rgba(255,255,255,.07); color:#e2e8f0; cursor:pointer;
+  font-family:var(--font-body); font-size:.95rem; font-weight:700;
+  transition:background .15s ease, transform .1s ease;
+}
+.rep-btn:hover{ background:rgba(255,255,255,.13); }
+.rep-btn:active{ transform:scale(.98); }
+.rep-btn:focus-visible{ outline:3px solid #fdba74; outline-offset:2px; }
+/* El botón del tutor lleva otro color para que se note que es "la IA". */
+.rep-btn-ia{
+  border-color:rgba(167,139,250,.55);
+  background:linear-gradient(180deg,rgba(139,92,246,.32),rgba(109,40,217,.32));
+  color:#ede9fe;
+}
+.rep-btn-ia:hover{ background:linear-gradient(180deg,rgba(139,92,246,.45),rgba(109,40,217,.45)); }
+
+.rep-nota-practica{ margin:0; font-size:.82rem; color:#86efac; font-weight:700; }
+.rep-error-ia{ margin:0; font-size:.8rem; color:#fca5a5; max-width:34ch; }
+
+.rep-tutor{
+  width:100%; text-align:left; margin-top:.3rem;
+  background:rgba(139,92,246,.12); border:1px solid rgba(167,139,250,.35);
+  border-radius:14px; padding:.75rem .9rem;
+  font-size:.86rem; line-height:1.5; color:#e2e8f0;
+  animation:rep-entrar .4s ease both;
+}
+.rep-tutor p{ margin:0 0 .45rem; }
+.rep-tutor ul{ margin:0 0 .45rem; padding-left:1.1rem; display:flex; flex-direction:column; gap:.3rem; }
+.rep-tutor-titulo{ font-weight:800; color:#c4b5fd; }
+.rep-tutor-animo{ color:#c4b5fd; font-style:italic; margin-bottom:0 !important; }
+
+.juego-recorrido{
+  list-style:none; padding:0; margin:.5rem 0 0;
+  width:min(420px,100%); display:flex; flex-direction:column; gap:.4rem;
+}
+.juego-recorrido li{
+  display:flex; align-items:center; gap:.65rem; text-align:left;
+  background:rgba(255,255,255,.06); border-radius:10px; padding:.5rem .7rem;
+  border-left:3px solid rgba(255,255,255,.2);
+}
+.juego-recorrido li.alto{ border-left-color:#22c55e; }
+.juego-recorrido li.medio{ border-left-color:#f59e0b; }
+.juego-recorrido li.bajo{ border-left-color:#ef4444; }
+.juego-etapa-n{
+  width:22px; height:22px; border-radius:50%; background:rgba(255,255,255,.12);
+  display:grid; place-items:center; font-size:.75rem; flex-shrink:0;
+}
+.juego-recorrido strong{ display:block; font-size:.82rem; }
+.juego-recorrido small{ color:var(--gray-400); font-size:.72rem; }
+.juego-recorrido div{ flex:1; min-width:0; }
+.juego-puntos{ font-weight:700; font-family:var(--font-head); }
+
+/* ── Transición entre etapas ──
+   Es el momento de recompensa: aparece el puntaje y por qué se ramificó.
+   La caja entra con rebote y el número va dentro de un anillo del color del
+   tramo, con halo. */
+.juego-transicion{
+  position:fixed; inset:0; z-index:70; display:grid; place-items:center;
+  background:rgba(4,8,16,.86); backdrop-filter:blur(5px); padding:1.5rem;
+}
+.juego-transicion-caja{
+  text-align:center; color:#e2e8f0; max-width:340px;
+  animation:g-subir-caja .42s cubic-bezier(.34,1.56,.64,1) both;
+}
+@keyframes g-subir-caja{ from{ opacity:0; transform:translateY(18px) scale(.94); } }
+@keyframes g-anillo{ from{ opacity:0; transform:scale(.35); } }
+
+.juego-transicion-puntos{
+  display:inline-grid; place-items:center; position:relative;
+  width:132px; height:132px; margin:0 auto .9rem;
+  border-radius:50%; border:5px solid currentColor;
+  font-size:2.9rem; font-weight:800; font-family:var(--font-head);
+  line-height:1; font-variant-numeric:tabular-nums;
+  animation:g-anillo .5s cubic-bezier(.34,1.56,.64,1) both;
+  box-shadow:0 0 0 9px rgba(255,255,255,.045), 0 14px 34px rgba(0,0,0,.5);
+}
+/* Halo del color del tramo detrás del anillo. */
+.juego-transicion-puntos::before{
+  content:''; position:absolute; inset:-40%; border-radius:50%; z-index:-1;
+  background:radial-gradient(circle, currentColor 0%, transparent 68%);
+  opacity:.22;
+}
+.juego-transicion.alto  .juego-transicion-puntos{ color:#22c55e; }
+.juego-transicion.medio .juego-transicion-puntos{ color:#f59e0b; }
+.juego-transicion.bajo  .juego-transicion-puntos{ color:#ef4444; }
+.juego-transicion-caja p{ margin:.4rem 0; font-size:1.02rem; line-height:1.45; }
+.juego-transicion-caja small{ color:var(--gray-400); font-size:.8rem; }
+
+.juego-simple{ min-height:100dvh; background:#0b1220; display:flex; flex-direction:column; }
+
+/* En pantallas anchas el celular no debe tapar el escenario entero */
+@media (min-width:900px){
+  .tel-fondo{ align-items:center; }
+  .escena-lienzo{ min-height:48dvh; }
+}
+
+/* ── Movimiento reducido ──
+   Igual que en ActivityRunner.css: si el sistema pide no animar, el
+   escenario se queda quieto (destino, globos, migas, llamada y
+   transición) pero todo sigue visible y en su lugar final. */
+@media (prefers-reduced-motion: reduce){
+  .escena-shell *,
+  .escena-shell *::before,
+  .escena-shell *::after,
+  .juego-centro *,
+  .juego-centro *::before,
+  .juego-centro *::after,
+  .juego-transicion *,
+  .juego-simple *,
+  .tel-fondo *{
+    animation-duration:.001ms !important;
+    animation-delay:0s !important;
+    animation-iteration-count:1 !important;
+    transition-duration:.001ms !important;
+  }
+  /* Movimientos decorativos en bucle: se apagan del todo. */
+  .escena-destino,
+  .tel-barra.llamada .tel-avatar{ animation:none !important; }
+}
