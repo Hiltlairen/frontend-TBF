@@ -40,8 +40,20 @@ export function AuthProvider({ children }) {
     return () => window.removeEventListener(EVENTO_SESION_CADUCADA, alCaducar)
   }, [])
 
-  const entrar = useCallback(async (email, password) => {
-    const { token, usuario } = await api.auth.login(email, password)
+  // Paso 1: credenciales + captcha. Si el servidor pide el código del
+  // correo, devuelve { requiereCodigo, desafio, enviadoA, minutos } y la
+  // sesión recién se abre en verificarCodigo(); si no, { usuario }.
+  const entrar = useCallback(async (email, password, captcha) => {
+    const r = await api.auth.login(email, password, captcha)
+    if (r.requiereCodigo) return r
+    guardarSesion(r.token, r.usuario)
+    setUsuario(r.usuario)
+    return { usuario: r.usuario }
+  }, [])
+
+  // Paso 2: el código de 6 dígitos que llegó al correo.
+  const verificarCodigo = useCallback(async (desafio, codigo) => {
+    const { token, usuario } = await api.auth.verificarCodigoLogin(desafio, codigo)
     guardarSesion(token, usuario)
     setUsuario(usuario)
     return usuario
@@ -68,7 +80,7 @@ export function AuthProvider({ children }) {
   }, [])
 
   return (
-    <Ctx.Provider value={{ usuario, cargando, entrar, entrarConToken, salir, puede, actualizarUsuario }}>
+    <Ctx.Provider value={{ usuario, cargando, entrar, verificarCodigo, entrarConToken, salir, puede, actualizarUsuario }}>
       {children}
     </Ctx.Provider>
   )

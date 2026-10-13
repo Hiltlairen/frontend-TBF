@@ -2,12 +2,14 @@
 // ActivarCuenta.jsx — Momento 1: primer login con verificación
 // ============================================================
 // Enlace que llega por correo cuando el admin crea una cuenta de
-// staff. Confirma el correo Y fija la contraseña en un solo paso.
+// staff. Confirma el correo Y fija la contraseña en un solo paso, tras
+// resolver el captcha ("No soy un robot"), que valida el servidor.
 // ============================================================
 import { useState } from 'react'
 import { useNavigate, useSearchParams, Link } from 'react-router-dom'
 import { api } from '../lib/api.js'
 import { useAuth, INICIO_POR_ROL } from './AuthContext.jsx'
+import Captcha, { captchaActivo } from '../components/ui/Captcha.jsx'
 import './Login.css'
 
 export default function ActivarCuenta() {
@@ -18,6 +20,8 @@ export default function ActivarCuenta() {
   const [error, setError] = useState(null)
   const [hecho, setHecho] = useState(false)
   const [cargando, setCargando] = useState(false)
+  const [captcha, setCaptcha] = useState('')
+  const [reiniciarCaptcha, setReiniciarCaptcha] = useState(0)
   const navegar = useNavigate()
   const { entrarConToken } = useAuth()
 
@@ -26,13 +30,17 @@ export default function ActivarCuenta() {
     setError(null)
     if (password.length < 8) return setError('La contraseña necesita al menos 8 caracteres.')
     if (password !== password2) return setError('Las dos contraseñas no coinciden.')
+    if (captchaActivo && !captcha) return setError('Completa la verificación "No soy un robot".')
     setCargando(true)
     try {
-      const { token: sesion, usuario } = await api.auth.verificarCuenta(token, password)
+      const { token: sesion, usuario } = await api.auth.verificarCuenta(token, password, captcha)
       entrarConToken(sesion, usuario)
       setHecho(true)
       setTimeout(() => navegar(INICIO_POR_ROL[usuario.rol] ?? '/dashboard', { replace: true }), 1200)
-    } catch (err) { setError(err.message) }
+    } catch (err) {
+      setError(err.message)
+      setReiniciarCaptcha((n) => n + 1)   // el token del captcha es de un solo uso
+    }
     finally { setCargando(false) }
   }
 
@@ -71,9 +79,11 @@ export default function ActivarCuenta() {
                 onChange={(e) => setPassword2(e.target.value)} />
             </label>
 
+            <Captcha onToken={setCaptcha} reiniciar={reiniciarCaptcha} />
+
             {error && <p className="login-error">{error}</p>}
 
-            <button className="login-btn" type="submit" disabled={cargando}>
+            <button className="login-btn" type="submit" disabled={cargando || (captchaActivo && !captcha)}>
               {cargando ? 'Activando…' : 'Activar mi cuenta'}
             </button>
           </>

@@ -65,3 +65,19 @@
 @media (max-width:420px){
   .login-card{ padding:1.5rem 1.15rem; box-shadow:none; border:0; background:transparent; }
 }
+
+/* ── Captcha (Cloudflare Turnstile) ── */
+.captcha{ display:flex; justify-content:center; min-height:65px; }
+
+/* ── Paso 2: código del correo ── */
+.login-codigo{
+  text-align:center; font-size:1.7rem !important; font-weight:800;
+  letter-spacing:.5em; padding-left:.5em !important; font-variant-numeric:tabular-nums;
+}
+.login-codigo-acciones{ display:flex; justify-content:space-between; gap:.6rem; flex-wrap:wrap; }
+.login-enlace{
+  border:0; background:transparent; padding:.3rem 0; cursor:pointer;
+  color:var(--accent-txt); font:inherit; font-size:.85rem; font-weight:600;
+}
+.login-enlace:disabled{ color:var(--txt-muted); cursor:default; }
+.login-enlace:focus-visible{ outline:2px solid var(--accent); outline-offset:2px; border-radius:4px; }

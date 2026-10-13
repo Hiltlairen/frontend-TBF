@@ -88,7 +88,10 @@ export const api = {
   salud: () => get('/api/salud'),
 
   auth: {
-    login:     (email, password) => post('/api/auth/login', { email, password }),
+    // Login en 2 pasos: credenciales + captcha → (código por correo) → verificar
+    login:     (email, password, captcha) => post('/api/auth/login', { email, password, captcha }),
+    verificarCodigoLogin: (desafio, codigo) => post('/api/auth/login/verificar', { desafio, codigo }),
+    reenviarCodigoLogin:  (desafio) => post('/api/auth/login/reenviar', { desafio }),
     // codigoMatricula: solo cuando la sala está vinculada a una clase
     // (estudiante ya registrado por admin/curador). `nombre` sigue
     // sirviendo para salas sueltas sin clase.
@@ -100,7 +103,7 @@ export const api = {
     aceptarAvisoPrivacidad:  () => post('/api/auth/aviso-privacidad/aceptar', {}),
 
     // Verificación de cuenta (momento 1: primer login)
-    verificarCuenta:      (token, password) => post('/api/auth/verificar-cuenta', { token, password }),
+    verificarCuenta:      (token, password, captcha) => post('/api/auth/verificar-cuenta', { token, password, captcha }),
     reenviarVerificacion: (email) => post('/api/auth/reenviar-verificacion', { email }),
 
     // Restablecer contraseña (momento 2)
