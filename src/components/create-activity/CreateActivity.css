@@ -501,3 +501,69 @@
   .wiz-panel{ animation:none; }
   .wiz-num{ transition:none; }
 }
+
+/* ════════════════════════════════════════════════════════════
+   ASISTENTE VERTICAL: todos los pasos en la misma página
+   ════════════════════════════════════════════════════════════ */
+/* La barra de pasos queda fija bajo la barra superior del panel. */
+.wiz-pasos{
+  position:sticky; top:var(--topbar-h); z-index:20;
+  background:var(--bg); padding:.7rem 0 .6rem; margin-bottom:.8rem;
+  border-bottom:1px solid var(--border);
+}
+
+.wiz-seccion{
+  border:1px solid var(--border); border-radius:var(--radius); background:var(--surface);
+  margin-bottom:.8rem; overflow:hidden;
+  /* Al bajar hasta un paso, que quede debajo de las dos barras fijas */
+  scroll-margin-top:calc(var(--topbar-h) + 115px);
+  transition:border-color .2s ease, box-shadow .2s ease, opacity .2s ease;
+}
+.wiz-seccion.abierto{ border-color:var(--accent); box-shadow:0 6px 22px rgba(0,0,0,.08); }
+.wiz-seccion.bloqueado{ opacity:.5; }
+
+.wiz-seccion-cab{
+  width:100%; display:flex; align-items:center; gap:.9rem; text-align:left;
+  padding:.85rem 1.1rem; border:0; background:transparent; color:var(--txt); font:inherit; cursor:pointer;
+}
+.wiz-seccion-cab:disabled{ cursor:default; }
+.wiz-seccion.hecho .wiz-seccion-cab:hover{ background:var(--bg); }
+.wiz-seccion-cab:focus-visible{ outline:3px solid var(--accent); outline-offset:-3px; }
+.wiz-seccion .wiz-num{ width:36px; height:36px; font-size:.9rem; border-width:2px; flex-shrink:0; }
+.wiz-seccion.hecho .wiz-num{ border-color:var(--accent); background:var(--accent); color:var(--white); }
+.wiz-seccion.abierto .wiz-num{ border-color:var(--accent); color:var(--accent-txt); background:var(--accent-tint); }
+.wiz-seccion-titulo{ flex:1; min-width:0; display:flex; flex-direction:column; gap:.1rem; }
+.wiz-seccion-titulo strong{ font-family:var(--font-head); font-size:1.02rem; }
+.wiz-seccion-titulo small{
+  color:var(--txt-muted); font-size:.8rem;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.wiz-seccion.hecho .wiz-seccion-titulo small{ color:var(--txt); font-weight:600; }
+.wiz-cambiar{
+  flex-shrink:0; font-size:.78rem; font-weight:700; color:var(--accent-txt);
+  border:1px solid var(--accent); border-radius:99px; padding:.25rem .7rem;
+}
+
+.wiz-seccion-cuerpo{ padding:0 1.1rem 1.1rem; animation:wiz-entrar .28s ease-out; }
+/* Las tarjetas internas (lecciones, catálogo, variantes) ya están dentro
+   del marco del paso: sin borde ni relleno propio, para no apilar cajas. */
+.wiz-seccion-cuerpo > .card:not(.aviso-sin-ia){
+  border:0; box-shadow:none; background:transparent; padding:0; margin:0 0 .8rem;
+}
+.wiz-seccion-cuerpo .wiz-intro{ margin:0 0 .9rem; }
+
+/* "Continuar" justo donde se termina de elegir */
+.wiz-continuar{
+  display:flex; align-items:center; justify-content:flex-end; gap:.8rem; flex-wrap:wrap;
+  margin-top:1rem; padding-top:.9rem; border-top:1px dashed var(--border);
+}
+.wiz-continuar .btn{ min-height:44px; padding-inline:1.4rem; }
+.wiz-error{ display:block; margin-top:.8rem; }
+
+@media (max-width:640px){
+  .wiz-seccion{ scroll-margin-top:calc(var(--topbar-h) + 80px); }
+  .wiz-cambiar{ display:none; }
+}
+@media (prefers-reduced-motion: reduce){
+  .wiz-seccion, .wiz-seccion-cuerpo{ transition:none; animation:none; }
+}

@@ -22,7 +22,7 @@
 //
 // La API Key ya no se pide aquí: vive en el .env del servidor.
 // ============================================================
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../../lib/api.js'
 import LessonSelector from './LessonSelector.jsx'
 import RoutePreview from './RoutePreview.jsx'
@@ -56,6 +56,17 @@ const ICONO_INTERACCION = {
 
 export default function CreateActivityPage() {
   const [paso, setPaso] = useState(1)
+  // Asistente vertical: al abrir un paso, la página baja hasta él
+  // (como una ruleta) y los anteriores quedan arriba, resumidos.
+  const refsPaso = useRef({})
+  const primeraVez = useRef(true)
+  useEffect(() => {
+    if (primeraVez.current) { primeraVez.current = false; return }
+    const el = refsPaso.current[paso]
+    if (!el) return
+    const reducido = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    requestAnimationFrame(() => el.scrollIntoView({ behavior: reducido ? 'auto' : 'smooth', block: 'start' }))
+  }, [paso])
   const [modo, setModo] = useState('simple')
 
   const [libros, setLibros] = useState([])
@@ -185,6 +196,8 @@ export default function CreateActivityPage() {
       setLeccionesSel([])
       setCodigosSel([])
     }
+    // Una sola opción: elegirla ya es avanzar (sin "Siguiente").
+    if (nuevoLibroId) { setPaso(2); setError(null) }
   }
 
   const claseSel = clases.find((c) => c.id === claseId) ?? null
@@ -303,7 +316,20 @@ export default function CreateActivityPage() {
   }
   // Se puede ir a un paso si todos los anteriores están completos.
   const alcanzable = (n) => PASOS.slice(0, n - 1).every((x) => pasoListo[x.n])
-  const ir = (n) => { if (alcanzable(n)) { setPaso(n); setError(null); window.scrollTo?.({ top: 0, behavior: 'smooth' }) } }
+  const ir = (n) => { if (alcanzable(n)) { setPaso(n); setError(null) } }
+  // Lo que se eligió en cada paso, para verlo en su cabecera cuando está cerrado.
+  const resumenPaso = {
+    1: claseSel && `${claseSel.nombre}${libroSel ? ` · ${libroSel.nombre}` : ''}`,
+    2: leccionesSel.length > 0 && leccionesSel.map((l) => `L${l.numero}`).join(', '),
+    3: codigosSel.length > 0 && `${modo === 'simple' ? 'Simple' : 'Aventura'} · ${codigosSel.map((c) => catPorCodigo[c]?.titulo ?? c).join(', ')}`,
+    4: resultado && `${resultado.registro.variantes?.length ?? 1} variante(s) generadas`,
+  }
+  const propsPaso = (n) => ({
+    n, refs: refsPaso, abierto: paso === n,
+    hecho: pasoListo[n] && n !== paso, bloqueado: !alcanzable(n),
+    resumen: resumenPaso[n], onAbrir: () => ir(n),
+    error: paso === n ? error : null,
+  })
   const actividadesElegidas = codigosSel.map((c) => catPorCodigo[c]).filter(Boolean)
 
   return (
@@ -329,10 +355,8 @@ export default function CreateActivityPage() {
         })}
       </ol>
 
-      {/* ══ Paso 1 · Curso ══ */}
-      {paso === 1 && (
-        <section className="card wiz-panel" aria-labelledby="wiz-t1">
-          <div className="section-title"><h3 id="wiz-t1">¿Para qué curso es?</h3></div>
+      {/* ══ Paso 1 · Curso ══ (elegir avanza solo: es una sola opción) */}
+      <Paso {...propsPaso(1)} titulo="¿Para qué curso es?">
           <p className="muted wiz-intro">Solo aparecen los cursos que te asignaron. El libro y el nivel salen del curso.</p>
           {clasesCargando && <p className="muted">Cargando tus clases…</p>}
 
@@ -369,23 +393,23 @@ export default function CreateActivityPage() {
               Esta clase no tiene un libro asignado todavía — pedile a un admin que le asigne uno para poder generar actividades.
             </p>
           )}
-        </section>
-      )}
+      </Paso>
 
-      {/* ══ Paso 2 · Lecciones ══ */}
-      {paso === 2 && libroId && (
-        <section className="wiz-panel">
+      {/* ══ Paso 2 · Lecciones ══ (varias: se confirma con "Continuar") */}
+      <Paso {...propsPaso(2)} titulo="¿De qué lecciones?">
+        {libroId && (
           <LessonSelector
             lessons={lecciones} selectedLessons={leccionesSel}
             onChange={(l) => { setLeccionesSel(l); limpiarSalida() }}
             loading={!lecciones.length}
           />
-        </section>
-      )}
+        )}
+        <Continuar listo={pasoListo[2]} onClick={() => ir(3)}
+          falta="Elige al menos una lección" />
+      </Paso>
 
       {/* ══ Paso 3 · Actividades ══ */}
-      {paso === 3 && (
-        <section className="wiz-panel">
+      <Paso {...propsPaso(3)} titulo="¿Qué actividades?">
           <div className="modo-tabs" role="tablist">
             <button role="tab" aria-selected={modo === 'simple'}
               className={modo === 'simple' ? 'activo' : ''} onClick={() => cambiarModo('simple')}>
@@ -489,14 +513,15 @@ export default function CreateActivityPage() {
           </div>
 
           {modo === 'aventura' && vistaPrevia && <RoutePreview datos={vistaPrevia} />}
-        </section>
-      )}
+        <Continuar listo={pasoListo[3]} onClick={() => ir(4)}
+          falta={modo === 'simple' ? 'Elige una actividad' : `Elige al menos ${MINIMO_AVENTURA} actividades`} />
+      </Paso>
 
-      {/* ══ Paso 4 · Resumen y generar ══ */}
-      {paso === 4 && claseSel && (
-        <section className="card wiz-panel" aria-labelledby="wiz-t4">
+      {/* ══ Paso 4 · Resumen y generar ══ (al terminar, baja solo al 5) */}
+      <Paso {...propsPaso(4)} titulo="Revisa y genera">
+        {claseSel && (<>
           <div className="section-title">
-            <h3 id="wiz-t4">Revisa y genera</h3>
+            <span />
             {libroSel && (
               <span className="badge badge-ok" title="El nivel lo define el libro del curso">
                 Nivel {libroSel.nivel} · {libroSel.nombre}
@@ -543,12 +568,11 @@ export default function CreateActivityPage() {
               </p>
             )}
           </div>
-        </section>
-      )}
+        </>)}
+      </Paso>
 
       {/* ══ Paso 5 · Revisar variantes y lanzar ══ */}
-      {paso === 5 && (
-        <section className="wiz-panel">
+      <Paso {...propsPaso(5)} titulo="Revisa las variantes y lanza la sala">
         {resultado && (
           <PanelVariantes resultado={resultado}>
             {!sala && (
@@ -584,34 +608,48 @@ export default function CreateActivityPage() {
               </button>
             </div>
           )}
-        </section>
-      )}
+      </Paso>
 
-      {error && (
-        <div className="card" style={{ borderColor: 'var(--accent2)' }}>
-          <p className="badge badge-error" style={{ display: 'block' }}>{error}</p>
-        </div>
-      )}
+    </div>
+  )
+}
 
-      {/* ── Navegación entre pasos ── */}
-      {paso < 5 && (
-        <div className="wiz-nav">
-          {paso > 1
-            ? <button type="button" className="btn btn-outline" onClick={() => ir(paso - 1)} disabled={generando}>← Atrás</button>
-            : <span />}
-          {paso < 4 && (
-            <button type="button" className="btn btn-primary" onClick={() => ir(paso + 1)} disabled={!pasoListo[paso]}>
-              Siguiente →
-            </button>
-          )}
+// ── Un paso del asistente vertical ─────────────────────────
+// Siempre visible: cerrado muestra su número, título y lo que se eligió
+// (con "Cambiar" para volver a abrirlo); abierto muestra su contenido.
+// Los pasos a los que todavía no se puede llegar se ven apagados.
+function Paso({ n, refs, titulo, abierto, hecho, bloqueado, resumen, onAbrir, error, children }) {
+  const estado = abierto ? 'abierto' : hecho ? 'hecho' : bloqueado ? 'bloqueado' : ''
+  return (
+    <section ref={(el) => { refs.current[n] = el }} className={`wiz-seccion ${estado}`} aria-labelledby={`wiz-t${n}`}>
+      <button type="button" className="wiz-seccion-cab" onClick={onAbrir} disabled={abierto || bloqueado}
+        aria-expanded={abierto}>
+        <span className="wiz-num">{hecho ? '✓' : n}</span>
+        <span className="wiz-seccion-titulo">
+          <strong id={`wiz-t${n}`}>{titulo}</strong>
+          {!abierto && resumen && <small>{resumen}</small>}
+          {bloqueado && <small>Completa el paso anterior</small>}
+        </span>
+        {hecho && !abierto && <span className="wiz-cambiar">Cambiar</span>}
+      </button>
+      {abierto && (
+        <div className="wiz-seccion-cuerpo">
+          {children}
+          {error && <p className="badge badge-error wiz-error" role="alert">{error}</p>}
         </div>
       )}
-      {paso === 5 && !sala && (
-        <div className="wiz-nav">
-          <button type="button" className="btn btn-outline" onClick={() => ir(3)}>← Cambiar actividades</button>
-          <span />
-        </div>
-      )}
+    </section>
+  )
+}
+
+/** "Continuar" al final del paso, justo donde termina de elegir. */
+function Continuar({ listo, onClick, falta }) {
+  return (
+    <div className="wiz-continuar">
+      {!listo && <small className="muted">{falta}</small>}
+      <button type="button" className="btn btn-primary" onClick={onClick} disabled={!listo}>
+        Continuar ↓
+      </button>
     </div>
   )
 }
