@@ -85,13 +85,13 @@ export default function DashboardHome() {
         )}
       </div>
 
-      {/* ── Consumo de Gemini: hace visible el ahorro de tokens ── */}
+      {/* ── Consumo de IA: hace visible el ahorro de tokens ── */}
       {uso && (
         <div className="card" style={{ marginTop: '1rem' }}>
           <div className="section-title">
-            <h3>Consumo de Gemini</h3>
-            <span className={`badge ${uso.keyConfigurada ? 'badge-ok' : 'badge-error'}`}>
-              {uso.keyConfigurada ? uso.modelo : 'sin API key en el servidor'}
+            <h3>Consumo de IA</h3>
+            <span className={`badge ${uso.iaConfigurada ? 'badge-ok' : 'badge-error'}`}>
+              {uso.iaConfigurada ? 'IA activa' : 'sin API key en el servidor'}
             </span>
           </div>
           <div className="uso-metricas">

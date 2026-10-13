@@ -56,7 +56,7 @@ export default function PanelVariantes({ resultado, children }) {
         )}
       </dl>
       <p className="ver-nota muted">
-        La salida incluye los tokens de "razonamiento" del modelo, que Google también cobra.
+        La salida incluye los tokens de "razonamiento" del modelo, que también se cobran.
         {tel.desdeCache && ' Estas variantes salieron de la caché: no costaron nada.'}
       </p>
 
