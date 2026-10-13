@@ -1,0 +1,48 @@
+/* ============================================================
+   GestionCursos.css — cursos → actividades → planilla de notas
+   ============================================================ */
+.gc-subtitulo{ font-family:var(--font-head); font-size:1rem; margin:1.2rem 0 .6rem; }
+
+/* Tarjetas de curso como botones (selección) */
+.gc-curso{ text-align:left; cursor:pointer; font:inherit; color:inherit; width:100%; }
+.gc-curso:focus-visible{ outline:3px solid var(--accent); outline-offset:2px; }
+.gc-curso-sel{ border-color:var(--accent); background:var(--accent-tint); }
+
+.gc-detalle{ margin-top:1.2rem; }
+.gc-detalle .gc-subtitulo{ margin-top:0; }
+
+/* Selector de actividades del curso */
+.gc-actividades{
+  display:flex; flex-wrap:wrap; align-items:center; gap:.4rem;
+  margin-bottom:1rem; padding-bottom:.8rem; border-bottom:1px solid var(--border);
+}
+.gc-actividades-label{ font-size:.8rem; font-weight:700; color:var(--txt-muted); margin-right:.2rem; }
+.gc-actividades button{
+  border:1px solid var(--border); background:var(--surface); color:var(--txt);
+  border-radius:99px; padding:.35rem .8rem; font:inherit; font-size:.8rem; cursor:pointer;
+  max-width:260px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+.gc-actividades button:hover{ border-color:var(--accent); }
+.gc-actividades button.activo{ background:var(--accent); border-color:var(--accent); color:var(--white); font-weight:700; }
+.gc-actividades button:focus-visible{ outline:3px solid var(--accent); outline-offset:2px; }
+
+/* Planilla */
+.gc-tabla th, .gc-tabla td{ vertical-align:middle; }
+.gc-col-nombre{ min-width:180px; position:sticky; left:0; background:var(--surface); z-index:1; }
+.gc-codigo{ display:block; font-size:.72rem; }
+.gc-col-nota{ text-align:center; min-width:96px; }
+.gc-tabla th.gc-col-nota{ max-width:150px; }
+.gc-tabla th.gc-col-nota small{ display:block; color:var(--txt-muted); font-weight:400; font-size:.7rem; }
+.gc-tabla th.gc-col-nota span{
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+  font-size:.78rem; line-height:1.25;
+}
+.gc-col-final{ text-align:center; min-width:96px; border-left:2px solid var(--border); }
+.gc-col-final strong{ display:block; font-size:1.05rem; }
+.gc-col-final small{ font-size:.7rem; }
+.gc-alta{ color:var(--ok-soft-txt); font-weight:700; }
+.gc-media{ color:var(--warn-txt); font-weight:700; }
+.gc-baja{ color:var(--bad-soft-txt); font-weight:700; }
+
+.gc-nota-final{ font-size:.78rem; margin:.7rem 0 0; }
+.gc-exportar{ align-items:center; margin-top:1rem; flex-wrap:wrap; gap:.6rem; }

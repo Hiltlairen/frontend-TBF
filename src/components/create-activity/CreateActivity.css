@@ -429,3 +429,75 @@
 .act-card-bloqueada .act-card-btn{ cursor:not-allowed; }
 .act-sin-ia{ color:var(--txt-muted); font-size:.7rem; font-weight:600; }
 .act-con-vocab{ color:var(--ok-soft-txt); font-size:.7rem; font-weight:600; }
+
+/* ════════════════════════════════════════════════════════════
+   ASISTENTE POR PASOS (CreateActivityPage.jsx)
+   ════════════════════════════════════════════════════════════ */
+.wiz-pasos{
+  list-style:none; margin:0 0 1.2rem; padding:0;
+  display:grid; grid-template-columns:repeat(5, minmax(0, 1fr)); gap:.4rem;
+  counter-reset:paso;
+}
+.wiz-paso{ position:relative; }
+/* Línea que une los pasos */
+.wiz-paso:not(:last-child)::after{
+  content:''; position:absolute; top:22px; left:calc(50% + 24px); right:calc(-50% + 24px);
+  height:3px; border-radius:3px; background:var(--border);
+}
+.wiz-paso.hecho:not(:last-child)::after{ background:var(--accent); }
+.wiz-paso button{
+  width:100%; display:flex; flex-direction:column; align-items:center; gap:.35rem;
+  border:0; background:transparent; padding:0; font:inherit; color:var(--txt); cursor:pointer;
+}
+.wiz-paso button:disabled{ cursor:default; }
+.wiz-paso button:not(:disabled):hover .wiz-num{ border-color:var(--accent); transform:scale(1.06); }
+.wiz-paso button:focus-visible .wiz-num{ outline:3px solid var(--accent); outline-offset:3px; }
+.wiz-num{
+  width:44px; height:44px; border-radius:50%; display:grid; place-items:center;
+  border:3px solid var(--border); background:var(--surface); color:var(--txt-muted);
+  font-family:var(--font-head); font-weight:800; font-size:1rem; position:relative; z-index:1;
+  transition:transform .18s ease, border-color .18s ease, background .18s ease;
+}
+.wiz-paso.hecho .wiz-num{ border-color:var(--accent); background:var(--accent); color:var(--white); }
+.wiz-paso.actual .wiz-num{
+  border-color:var(--accent); color:var(--accent-txt); background:var(--accent-tint);
+  box-shadow:0 0 0 5px var(--accent-tint);
+}
+.wiz-txt{ display:flex; flex-direction:column; align-items:center; text-align:center; min-width:0; }
+.wiz-txt strong{ font-size:.85rem; }
+.wiz-txt small{ font-size:.7rem; color:var(--txt-muted); }
+.wiz-paso:not(.actual):not(.hecho) .wiz-txt strong{ color:var(--txt-muted); }
+
+/* El panel del paso entra deslizándose */
+.wiz-panel{ animation:wiz-entrar .28s ease-out; }
+@keyframes wiz-entrar{ from{ opacity:0; transform:translateY(10px); } }
+.wiz-intro{ margin:-.3rem 0 .9rem; font-size:.85rem; }
+
+.wiz-resumen{ grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); }
+.wiz-actividades{
+  margin:0 0 .8rem; padding:0; list-style:none; display:flex; flex-wrap:wrap; gap:.4rem;
+}
+.wiz-actividades li{
+  border:1px solid var(--border); border-radius:99px; padding:.35rem .8rem; font-size:.82rem;
+  background:var(--bg);
+}
+.wiz-generar{ margin-top:1rem; }
+
+.wiz-nav{
+  display:flex; justify-content:space-between; align-items:center; gap:.8rem;
+  margin-top:1rem; padding-top:1rem; border-top:1px solid var(--border);
+}
+.wiz-nav .btn{ min-height:44px; padding-inline:1.2rem; }
+.wiz-otra{ margin-top:1rem; display:flex; justify-content:center; }
+
+/* Móvil: los pasos solo con el número (el título del paso actual sí se ve) */
+@media (max-width:640px){
+  .wiz-num{ width:36px; height:36px; font-size:.9rem; }
+  .wiz-paso:not(:last-child)::after{ top:18px; left:calc(50% + 20px); right:calc(-50% + 20px); }
+  .wiz-txt small{ display:none; }
+  .wiz-paso:not(.actual) .wiz-txt{ display:none; }
+}
+@media (prefers-reduced-motion: reduce){
+  .wiz-panel{ animation:none; }
+  .wiz-num{ transition:none; }
+}

@@ -131,3 +131,12 @@
 .cls-codigos-lista small{ flex-basis:100%; }
 .cls-tabla-scroll{ overflow-x:auto; }
 .cls-tabla-scroll .adm-tabla{ min-width:480px; }
+
+/* ── Clase nueva: vista propia con botón para volver ── */
+.cls-nueva{ display:flex; flex-direction:column; gap:.6rem; }
+.cls-nueva h3{ margin:.2rem 0 0; }
+.cls-nueva .muted{ margin:0; }
+.cls-volver{ align-self:flex-start; }
+/* Código externo automático en la grilla de importación */
+.cls-codigo-auto{ white-space:nowrap; }
+.cls-codigo-auto code{ font-size:.85rem; }

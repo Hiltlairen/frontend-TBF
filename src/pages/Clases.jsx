@@ -12,7 +12,14 @@ import { Fragment, useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
 import './Admin.css'
 
-const VACIA = { nombre: '', periodo: '', bookId: '', docenteId: '' }
+// El periodo ya no se escribe: el servidor pone el año en curso.
+const VACIA = { nombre: '', bookId: '', docenteId: '' }
+
+// Vista previa del código externo, con el MISMO cálculo que el servidor
+// (classes.routes.js → codigoExterno): año + correlativo dentro de la
+// clase. El definitivo lo asigna el servidor al confirmar.
+const ANIO = new Date().getFullYear()
+const codigoExternoPrevisto = (numero) => `${ANIO}-${String(numero).padStart(4, '0')}`
 
 // Textos para el paso de revisión de la importación masiva (punto 3).
 const ISSUE_TEXTO = {
@@ -31,7 +38,7 @@ export default function Clases() {
   const [clases, setClases] = useState([])
   const [docentes, setDocentes] = useState([])
   const [libros, setLibros] = useState([])
-  const [abriendo, setAbriendo] = useState(false)
+  const [vista, setVista] = useState('lista')   // 'lista' | 'nueva' (formulario de clase nueva)
   const [nueva, setNueva] = useState(VACIA)
   const [error, setError] = useState(null)
   const [aviso, setAviso] = useState(null)
@@ -41,7 +48,7 @@ export default function Clases() {
   const [roster, setRoster] = useState([])
 
   // ── Importación masiva: grilla editable + paso de revisión ──
-  const filaVacia = () => ({ nombre: '', codigoExterno: '' })
+  const filaVacia = () => ({ nombre: '' })
   const filasVacias = (n) => Array.from({ length: n }, filaVacia)
   const [filasImport, setFilasImport] = useState(filasVacias(6))
   const [pasoImport, setPasoImport] = useState('editar')    // 'editar' | 'revisar'
@@ -64,12 +71,11 @@ export default function Clases() {
     try {
       await api.clases.crear({
         nombre: nueva.nombre.trim(),
-        periodo: nueva.periodo.trim() || undefined,
         bookId: nueva.bookId || undefined,
         docenteId: nueva.docenteId || undefined,
       })
       setAviso(`Clase "${nueva.nombre.trim()}" creada.`)
-      setNueva(VACIA); setAbriendo(false)
+      setNueva(VACIA); setVista('lista')
       cargar()
     } catch (err) { setError(err.message) }
   }
@@ -84,6 +90,17 @@ export default function Clases() {
     setError(null)
     try { await api.clases.editar(c.id, { bookId: bookId || null }); cargar() }
     catch (e) { setError(e.message) }
+  }
+
+  async function reactivarClase(c) {
+    if (!confirm(`¿Reactivar "${c.nombre}"? Vuelve a estar activa y sus estudiantes recuperan el acceso a las salas.`)) return
+    setError(null)
+    try {
+      const { mensaje } = await api.clases.reactivar(c.id)
+      setAviso(mensaje)
+      cargar()
+      if (claseAbierta === c.id) { const { estudiantes } = await api.clases.roster(c.id); setRoster(estudiantes) }
+    } catch (err) { setError(err.message) }
   }
 
   async function alternarActiva(c) {
@@ -133,14 +150,8 @@ export default function Clases() {
         const cols = linea.includes('\t') ? linea.split('\t') : linea.split(',')
         const destino = filaIndex + li
         while (copia.length <= destino) copia.push(filaVacia())
-        const fila = { ...copia[destino] }
-        if (campo === 'nombre') {
-          fila.nombre = (cols[0] ?? '').trim()
-          if (cols[1] !== undefined) fila.codigoExterno = cols[1].trim()
-        } else {
-          fila.codigoExterno = (cols[0] ?? '').trim()
-        }
-        copia[destino] = fila
+        // Solo importa el nombre: el código externo lo genera el sistema.
+        copia[destino] = { ...copia[destino], nombre: (cols[0] ?? '').trim() }
       })
       return copia
     })
@@ -148,8 +159,8 @@ export default function Clases() {
 
   async function revisarImport(c) {
     const limpias = filasImport
-      .map((f) => ({ nombre: f.nombre.trim(), codigoExterno: f.codigoExterno.trim() }))
-      .filter((f) => f.nombre || f.codigoExterno)
+      .map((f) => ({ nombre: f.nombre.trim() }))
+      .filter((f) => f.nombre)
     if (!limpias.length) { setError('Agrega al menos un nombre a la grilla.'); return }
     setRevisando(true); setError(null)
     try {
@@ -168,7 +179,7 @@ export default function Clases() {
     if (!revision || revision.resumen.invalidas > 0) return
     setAgregando(true); setError(null)
     try {
-      const filas = revision.filas.map(({ nombre, codigoExterno }) => ({ nombre, codigoExterno }))
+      const filas = revision.filas.map(({ nombre }) => ({ nombre }))
       const { estudiantes } = await api.clases.agregarEstudiantes(c.id, filas)
       setNuevosCodigos(estudiantes)
       setFilasImport(filasVacias(6)); setPasoImport('editar'); setRevision(null)
@@ -241,25 +252,19 @@ export default function Clases() {
       {error && <p className="badge badge-error" style={{ display: 'block' }}>{error}</p>}
       {aviso && <p className="badge badge-ok" style={{ display: 'block' }}>{aviso}</p>}
 
-      <div className="adm-barra">
-        <button className="adm-btn" onClick={() => setAbriendo((v) => !v)}>
-          {abriendo ? 'Cancelar' : '+ Nueva clase'}
-        </button>
-      </div>
-
-      {abriendo && (
+      {vista === 'nueva' ? (
+        <div className="cls-nueva">
+          <button type="button" className="adm-btn cls-volver" onClick={() => { setVista('lista'); setNueva(VACIA) }}>
+            ← Volver a Clases
+          </button>
+          <h3>Nueva clase</h3>
+          <p className="muted">El periodo se completa solo con el año en curso ({ANIO}).</p>
         <form className="adm-form" onSubmit={crear}>
           <label>
             <span>Nombre de la clase</span>
             <input value={nueva.nombre} required maxLength={80}
               placeholder='Ej. "3° B - Mañana"'
               onChange={(e) => setNueva({ ...nueva, nombre: e.target.value })} />
-          </label>
-          <label>
-            <span>Periodo (opcional)</span>
-            <input value={nueva.periodo} maxLength={40}
-              placeholder='Ej. "2026-II"'
-              onChange={(e) => setNueva({ ...nueva, periodo: e.target.value })} />
           </label>
           <label>
             <span>Libro</span>
@@ -277,7 +282,14 @@ export default function Clases() {
           </label>
           <button className="adm-btn adm-btn-ok" type="submit">Crear clase</button>
         </form>
-      )}
+        </div>
+      ) : (
+      <>
+      <div className="adm-barra">
+        <button className="adm-btn" onClick={() => { setVista('nueva'); setAviso(null); setError(null) }}>
+          + Nueva clase
+        </button>
+      </div>
 
       <div className="adm-tabla-scroll">
         <table className="adm-tabla">
@@ -315,7 +327,7 @@ export default function Clases() {
                   </td>
                   <td className="cls-acciones">
                     <button className="adm-btn" onClick={() => abrirRoster(c)}>
-                      {claseAbierta === c.id ? 'Ocultar roster' : 'Ver roster'}
+                      {claseAbierta === c.id ? 'Ocultar listado' : 'Listado Estudiantes'}
                     </button>
                     <button className="adm-btn" onClick={() => exportarClase(c)} title="Descargar registro (nombre, código, puntajes) para archivo del instituto">
                       Exportar CSV
@@ -325,9 +337,20 @@ export default function Clases() {
                         Finalizar curso
                       </button>
                     )}
-                    <button className={`adm-baja ${c.activa ? '' : 'reactivar'}`} onClick={() => alternarActiva(c)}>
-                      {c.activa ? 'Dar de baja' : 'Reactivar'}
-                    </button>
+                    {c.finalizada_en ? (
+                      c.diasParaReactivar > 0 ? (
+                        <button className="adm-baja reactivar" onClick={() => reactivarClase(c)}
+                          title="Deshace el cierre: solo se puede dentro de la ventana de retención">
+                          Reactivar ({c.diasParaReactivar} día{c.diasParaReactivar === 1 ? '' : 's'})
+                        </button>
+                      ) : (
+                        <small className="muted" title="Pasó el plazo de retención: ya no se puede reactivar">no reactivable</small>
+                      )
+                    ) : (
+                      <button className={`adm-baja ${c.activa ? '' : 'reactivar'}`} onClick={() => alternarActiva(c)}>
+                        {c.activa ? 'Dar de baja' : 'Reactivar'}
+                      </button>
+                    )}
                   </td>
                 </tr>
 
@@ -339,10 +362,9 @@ export default function Clases() {
                           <div className="cls-import-cab">
                             <span>Agregar estudiantes</span>
                             <small className="muted">
-                              Escribe o pega varias filas de una vez (por ejemplo copiadas de Excel/Sheets):
-                              nombre y, si tu instituto lo usa, un código externo de referencia. Ese código
-                              es solo informativo — nunca reemplaza el código de matrícula, que siempre lo
-                              genera el sistema. Antes de crear a nadie hay un paso de revisión.
+                              Escribe o pega los nombres (uno por fila; también desde Excel/Sheets). El código
+                              externo y el código de matrícula se generan solos. Antes de crear a nadie hay un
+                              paso de revisión.
                             </small>
                           </div>
 
@@ -350,26 +372,30 @@ export default function Clases() {
                             <>
                               <div className="cls-tabla-scroll">
                                 <table className="adm-tabla cls-import-grid">
-                                  <thead><tr><th>Nombre</th><th>Código externo (opcional)</th><th /></tr></thead>
+                                  <thead><tr><th>Nombre</th><th>Código externo (automático)</th><th /></tr></thead>
                                   <tbody>
-                                    {filasImport.map((f, i) => (
+                                    {filasImport.map((f, i) => {
+                                      // Correlativo: los que ya tuvo la clase + los nombres escritos hasta esta fila.
+                                      const conNombre = filasImport.slice(0, i + 1).filter((x) => x.nombre.trim()).length
+                                      return (
                                       <tr key={i}>
                                         <td>
                                           <input value={f.nombre} placeholder="Ej. Ana Pérez"
                                             onChange={(e) => actualizarFila(i, 'nombre', e.target.value)}
                                             onPaste={(e) => manejarPegado(e, i, 'nombre')} />
                                         </td>
-                                        <td>
-                                          <input value={f.codigoExterno} placeholder="Ej. 2026-0143"
-                                            onChange={(e) => actualizarFila(i, 'codigoExterno', e.target.value)}
-                                            onPaste={(e) => manejarPegado(e, i, 'codigoExterno')} />
+                                        <td className="cls-codigo-auto">
+                                          {f.nombre.trim()
+                                            ? <code>{codigoExternoPrevisto(roster.length + conNombre)}</code>
+                                            : <span className="muted">—</span>}
                                         </td>
                                         <td>
                                           <button type="button" className="cls-fila-quitar" title="Quitar fila"
                                             onClick={() => quitarFilaGrid(i)}>✕</button>
                                         </td>
                                       </tr>
-                                    ))}
+                                      )
+                                    })}
                                   </tbody>
                                 </table>
                               </div>
@@ -492,6 +518,8 @@ export default function Clases() {
           </tbody>
         </table>
       </div>
+      </>
+      )}
     </div>
   )
 }

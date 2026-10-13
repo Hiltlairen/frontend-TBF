@@ -51,7 +51,7 @@ export default function PanelVariantes({ resultado, children }) {
         <div><dt>Total</dt><dd><strong>{fmtTokens(tel.tokensTotal)}</strong></dd></div>
         {tel.costoUSD != null && <div><dt>Costo</dt><dd>{fmtUSD(tel.costoUSD)}</dd></div>}
         <div><dt>Llamadas</dt><dd>{tel.llamadasGemini ?? 0}</dd></div>
-        {tel.estimado && !tel.desdeCache && (
+        {tel.estimado && !tel.desdeCache && !tel.modoLocal && (
           <div><dt>Estimado</dt><dd className="muted">≈ {fmtTokens(tel.estimado.total)}</dd></div>
         )}
       </dl>

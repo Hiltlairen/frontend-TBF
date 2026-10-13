@@ -11,7 +11,7 @@ export default function LessonSelector({ lessons, selectedLessons, onChange, loa
   return (
     <div className="card">
       <div className="section-title">
-        <h3>2. Selecciona hasta {MAX_LECCIONES} lecciones (consecutivas)</h3>
+        <h3>Selecciona hasta {MAX_LECCIONES} lecciones (consecutivas)</h3>
         <span className="badge badge-warn">{selectedLessons.length}/{MAX_LECCIONES}</span>
       </div>
 

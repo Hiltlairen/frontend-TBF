@@ -10,7 +10,7 @@
 // ============================================================
 import { useEffect, useState } from 'react'
 import { api } from '../lib/api.js'
-import { ROL_NOMBRE } from '../auth/AuthContext.jsx'
+import { ROL_NOMBRE, useAuth } from '../auth/AuthContext.jsx'
 import './Admin.css'
 
 const ROLES_CREABLES = ['docente', 'curador', 'admin']
@@ -22,6 +22,7 @@ function Avatar({ nombre, avatar }) {
 }
 
 export default function AdminUsers() {
+  const { usuario: yo } = useAuth()
   const [usuarios, setUsuarios] = useState([])
   const [panorama, setPanorama] = useState(null)
   const [nuevo, setNuevo] = useState(VACIO)
@@ -155,7 +156,8 @@ export default function AdminUsers() {
                 </td>
                 <td className="adm-email">{u.email}</td>
                 <td>
-                  <select value={u.rol} onChange={(e) => cambiarRol(u, e.target.value)}>
+                  <select value={u.rol} onChange={(e) => cambiarRol(u, e.target.value)}
+                    disabled={u.id === yo?.id} title={u.id === yo?.id ? 'No puedes cambiar tu propio rol' : undefined}>
                     {ROLES_CREABLES.map((r) => <option key={r} value={r}>{ROL_NOMBRE[r]}</option>)}
                   </select>
                 </td>
@@ -175,11 +177,15 @@ export default function AdminUsers() {
                   {u.activo && !u.emailVerificado && (
                     <button className="adm-btn" onClick={() => reenviarInvitacion(u)}>Reenviar invitación</button>
                   )}
-                  <button
-                    className={`adm-baja ${u.activo ? '' : 'reactivar'}`}
-                    onClick={() => alternarActivo(u)}>
-                    {u.activo ? 'Dar de baja' : 'Reactivar'}
-                  </button>
+                  {u.id === yo?.id ? (
+                    <small className="muted">Tu cuenta</small>
+                  ) : (
+                    <button
+                      className={`adm-baja ${u.activo ? '' : 'reactivar'}`}
+                      onClick={() => alternarActivo(u)}>
+                      {u.activo ? 'Dar de baja' : 'Reactivar'}
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}

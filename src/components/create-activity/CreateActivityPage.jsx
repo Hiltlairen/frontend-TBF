@@ -36,6 +36,15 @@ import './RoomCode.css'
 
 const MINIMO_AVENTURA = 6
 
+// El asistente: un paso a la vez, con la barra de progreso arriba.
+const PASOS = [
+  { n: 1, titulo: 'Curso',       ayuda: 'Tu clase asignada' },
+  { n: 2, titulo: 'Lecciones',   ayuda: 'De qué vocabulario' },
+  { n: 3, titulo: 'Actividades', ayuda: 'Simple o aventura' },
+  { n: 4, titulo: 'Generar',     ayuda: 'Resumen y costo' },
+  { n: 5, titulo: 'Lanzar',      ayuda: 'Revisa y abre la sala' },
+]
+
 const ICONO_INTERACCION = {
   ninguna:         '👤 solo',
   dialogo_directo: '💬 cara a cara',
@@ -46,6 +55,7 @@ const ICONO_INTERACCION = {
 }
 
 export default function CreateActivityPage() {
+  const [paso, setPaso] = useState(1)
   const [modo, setModo] = useState('simple')
 
   const [libros, setLibros] = useState([])
@@ -130,6 +140,18 @@ export default function CreateActivityPage() {
 
   function limpiarSalida() {
     setResultado(null); setSala(null)
+  }
+
+  // Si algo de los pasos anteriores cambió (y se descartó lo generado),
+  // el paso 5 ya no tiene qué mostrar: se vuelve a "Generar".
+  useEffect(() => {
+    if (paso === 5 && !resultado) setPaso(4)
+  }, [paso, resultado])
+
+  // Después de lanzar: otra actividad para el mismo curso y lecciones.
+  function nuevaActividad() {
+    setCodigosSel([]); setCantidades({}); limpiarSalida(); setError(null)
+    setPaso(3)
   }
 
   function alternarCodigo(codigo) {
@@ -218,6 +240,7 @@ export default function CreateActivityPage() {
         registro: r.actividad ?? r.ruta,
         telemetria: r.telemetria, fallidas: r.fallidas,
       })
+      setPaso(5)
     } catch (e) {
       // La IA se cayó justo ahora: el panel pasa a modo "solo vocabulario".
       if (e.datos?.sinIA && e.datos.ia) setIa(e.datos.ia)
@@ -271,88 +294,123 @@ export default function CreateActivityPage() {
     limpiarSalida()
   }
 
+  // ── Asistente por pasos ─────────────────────────────────
+  const pasoListo = {
+    1: Boolean(claseSel && libroId),
+    2: leccionesSel.length > 0,
+    3: listo,
+    4: Boolean(resultado),
+  }
+  // Se puede ir a un paso si todos los anteriores están completos.
+  const alcanzable = (n) => PASOS.slice(0, n - 1).every((x) => pasoListo[x.n])
+  const ir = (n) => { if (alcanzable(n)) { setPaso(n); setError(null); window.scrollTo?.({ top: 0, behavior: 'smooth' }) } }
+  const actividadesElegidas = codigosSel.map((c) => catPorCodigo[c]).filter(Boolean)
+
   return (
     <div className="create-activity-page">
       <h2>Crear actividad</h2>
 
-      <div className="modo-tabs" role="tablist">
-        <button role="tab" aria-selected={modo === 'simple'}
-          className={modo === 'simple' ? 'activo' : ''} onClick={() => cambiarModo('simple')}>
-          <strong>Actividad simple</strong>
-          <small>Una sola actividad, sin juego</small>
-        </button>
-        <button role="tab" aria-selected={modo === 'aventura'}
-          className={modo === 'aventura' ? 'activo' : ''} onClick={() => cambiarModo('aventura')}>
-          <strong>Aventura</strong>
-          <small>{MINIMO_AVENTURA}+ actividades con escenarios y rutas</small>
-        </button>
-      </div>
+      {/* ── Progreso: los 5 pasos ── */}
+      <ol className="wiz-pasos" aria-label="Pasos para crear una actividad">
+        {PASOS.map((x) => {
+          const estado = x.n === paso ? 'actual' : pasoListo[x.n] && x.n < paso ? 'hecho' : ''
+          return (
+            <li key={x.n} className={`wiz-paso ${estado}`}>
+              <button type="button" onClick={() => ir(x.n)} disabled={!alcanzable(x.n) || x.n === paso}
+                aria-current={x.n === paso ? 'step' : undefined}>
+                <span className="wiz-num">{estado === 'hecho' ? '✓' : x.n}</span>
+                <span className="wiz-txt">
+                  <strong>{x.titulo}</strong>
+                  <small>{x.ayuda}</small>
+                </span>
+              </button>
+            </li>
+          )
+        })}
+      </ol>
 
-      {/* 1. Elige tu clase — el libro ya no se elige a mano: lo fija la
-          clase asignada (book_id). Lección y actividades siguen libres. */}
-      <div className="card">
-        <div className="section-title">
-          <h3>1. Elige tu clase</h3>
-        </div>
+      {/* ══ Paso 1 · Curso ══ */}
+      {paso === 1 && (
+        <section className="card wiz-panel" aria-labelledby="wiz-t1">
+          <div className="section-title"><h3 id="wiz-t1">¿Para qué curso es?</h3></div>
+          <p className="muted wiz-intro">Solo aparecen los cursos que te asignaron. El libro y el nivel salen del curso.</p>
+          {clasesCargando && <p className="muted">Cargando tus clases…</p>}
 
-        {clasesCargando && <p className="muted">Cargando tus clases…</p>}
+          {!clasesCargando && !clases.length && (
+            <p className="muted">
+              Todavía no tenés ninguna clase asignada — pedile a un admin que te asigne una antes de crear actividades.
+            </p>
+          )}
 
-        {!clasesCargando && !clases.length && (
-          <p className="muted">
-            Todavía no tenés ninguna clase asignada — pedile a un admin que te asigne una antes de crear actividades.
-          </p>
-        )}
+          {clases.length > 0 && (
+            <div className="book-grid">
+              {clases.map((c) => {
+                const active = c.id === claseId
+                return (
+                  <button
+                    key={c.id}
+                    type="button"
+                    className={`book-option ${active ? 'book-option-active' : ''}`}
+                    onClick={() => elegirClase(c.id)}
+                  >
+                    <div className="book-option-title">{c.nombre}</div>
+                    <div className="book-option-desc">
+                      {c.libroNombre ? `📖 ${c.libroNombre}` : '⚠️ sin libro asignado'}
+                      {' · '}{c.totalEstudiantes} estudiante{c.totalEstudiantes === 1 ? '' : 's'}
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+          )}
 
-        {clases.length > 0 && (
-          <div className="book-grid">
-            {clases.map((c) => {
-              const active = c.id === claseId
-              return (
-                <button
-                  key={c.id}
-                  type="button"
-                  className={`book-option ${active ? 'book-option-active' : ''}`}
-                  onClick={() => elegirClase(c.id)}
-                >
-                  <div className="book-option-title">{c.nombre}</div>
-                  <div className="book-option-desc">
-                    {c.libroNombre ? `📖 ${c.libroNombre}` : '⚠️ sin libro asignado'}
-                    {' · '}{c.totalEstudiantes} estudiante{c.totalEstudiantes === 1 ? '' : 's'}
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        )}
-
-        {claseId && !libroId && (
-          <p className="badge badge-warn" style={{ display: 'block', marginTop: '.7rem' }}>
-            Esta clase no tiene un libro asignado todavía — pedile a un admin que le asigne uno para poder generar actividades.
-          </p>
-        )}
-      </div>
-
-      {libroId && (
-        <LessonSelector
-          lessons={lecciones} selectedLessons={leccionesSel}
-          onChange={(l) => { setLeccionesSel(l); limpiarSalida() }}
-          loading={!lecciones.length}
-        />
+          {claseId && !libroId && (
+            <p className="badge badge-warn" style={{ display: 'block', marginTop: '.7rem' }}>
+              Esta clase no tiene un libro asignado todavía — pedile a un admin que le asigne uno para poder generar actividades.
+            </p>
+          )}
+        </section>
       )}
 
-      {sinIA && libroId && (
-        <AvisoSinIA
-          ia={ia} modo={modo} minimoAventura={MINIMO_AVENTURA} onComprobar={comprobarIA}
-          cantidadVocabulario={catalogo.filter((a) => !a.requiereIA).length}
-        />
+      {/* ══ Paso 2 · Lecciones ══ */}
+      {paso === 2 && libroId && (
+        <section className="wiz-panel">
+          <LessonSelector
+            lessons={lecciones} selectedLessons={leccionesSel}
+            onChange={(l) => { setLeccionesSel(l); limpiarSalida() }}
+            loading={!lecciones.length}
+          />
+        </section>
       )}
 
-      {libroId && (
-        <div className="card">
-          <div className="section-title">
-            <h3>{modo === 'simple' ? '3. Elige la actividad' : `3. Elige al menos ${MINIMO_AVENTURA} actividades`}</h3>
-            <span className={`badge ${listo ? 'badge-ok' : 'badge-warn'}`}>{codigosSel.length} elegida(s)</span>
+      {/* ══ Paso 3 · Actividades ══ */}
+      {paso === 3 && (
+        <section className="wiz-panel">
+          <div className="modo-tabs" role="tablist">
+            <button role="tab" aria-selected={modo === 'simple'}
+              className={modo === 'simple' ? 'activo' : ''} onClick={() => cambiarModo('simple')}>
+              <strong>Actividad simple</strong>
+              <small>Una sola actividad, sin juego</small>
+            </button>
+            <button role="tab" aria-selected={modo === 'aventura'}
+              className={modo === 'aventura' ? 'activo' : ''} onClick={() => cambiarModo('aventura')}>
+              <strong>Aventura</strong>
+              <small>{MINIMO_AVENTURA}+ actividades con escenarios y rutas</small>
+            </button>
           </div>
+
+          {sinIA && (
+            <AvisoSinIA
+              ia={ia} modo={modo} minimoAventura={MINIMO_AVENTURA} onComprobar={comprobarIA}
+              cantidadVocabulario={catalogo.filter((a) => !a.requiereIA).length}
+            />
+          )}
+
+          <div className="card">
+            <div className="section-title">
+              <h3>{modo === 'simple' ? 'Elige la actividad' : `Elige al menos ${MINIMO_AVENTURA} actividades`}</h3>
+              <span className={`badge ${listo ? 'badge-ok' : 'badge-warn'}`}>{codigosSel.length} elegida(s)</span>
+            </div>
 
           {/* El catálogo se pinta en 5 franjas de dificultad creciente
               (Básico → Experto), en vez de una sola grilla plana: así se ve
@@ -428,38 +486,106 @@ export default function CreateActivityPage() {
               Faltan {MINIMO_AVENTURA - codigosSel.length} para poder armar la ruta.
             </p>
           )}
-        </div>
+          </div>
+
+          {modo === 'aventura' && vistaPrevia && <RoutePreview datos={vistaPrevia} />}
+        </section>
       )}
 
-      {codigosSel.length > 0 && claseSel && (
-        <div className="card">
+      {/* ══ Paso 4 · Resumen y generar ══ */}
+      {paso === 4 && claseSel && (
+        <section className="card wiz-panel" aria-labelledby="wiz-t4">
           <div className="section-title">
-            <h3>Curso y nivel</h3>
+            <h3 id="wiz-t4">Revisa y genera</h3>
             {libroSel && (
-              <span className="badge badge-ok" title="El nivel lo define el libro de la clase">
+              <span className="badge badge-ok" title="El nivel lo define el libro del curso">
                 Nivel {libroSel.nivel} · {libroSel.nombre}
               </span>
             )}
           </div>
 
-          {/* El curso NO se escribe: es la clase que le asignaron al docente. */}
-          <dl className="curso-fijo">
+          <dl className="curso-fijo wiz-resumen">
             <div><dt>Curso</dt><dd>🏫 {claseSel.nombre}{claseSel.periodo ? ` · ${claseSel.periodo}` : ''}</dd></div>
+            <div><dt>Lecciones</dt><dd>{leccionesSel.map((l) => `L${l.numero}`).join(', ')}</dd></div>
+            <div><dt>Tipo</dt><dd>{modo === 'simple' ? 'Actividad simple' : `Aventura · ${codigosSel.length} actividades`}</dd></div>
             <div><dt>Estudiantes</dt><dd>{plan?.estudiantes ?? claseSel.totalEstudiantes}</dd></div>
             <div><dt>Variantes</dt><dd><strong>{plan?.variantes ?? '…'}</strong></dd></div>
           </dl>
+
+          <ul className="wiz-actividades">
+            {actividadesElegidas.map((a) => (
+              <li key={a.codigo}>
+                <strong>{a.titulo}</strong>
+                {a.preguntas && <small className="muted"> · {cantidadDe(a.codigo)} {a.preguntas.unidad}</small>}
+                {a.requiereRevision && <small className="act-revision"> · la corriges tú</small>}
+              </li>
+            ))}
+          </ul>
+
           <p className="muted curso-fijo-nota">
-            El curso es la clase que te asignaron (no se puede cambiar aquí) y el nivel lo fija su libro.
             Se generan <strong>{plan?.variantes ?? '…'} variantes</strong> con preguntas distintas
             {sinIA
               ? ' — sin IA, una por estudiante (se arman gratis con el vocabulario de la lección)'
               : ` — con IA, hasta ${plan?.maxVariantesIA ?? 10} (cada una gasta tokens)`}.
-            Cada estudiante entra con el código de sala y su código de matrícula, y le toca una variante al azar.
+            Cada estudiante entra con el código de sala y su código de matrícula, y le toca una al azar.
           </p>
-        </div>
+
+          <div className="wiz-generar">
+            <BotonIA className="btn-generar" onClick={generar} cargando={generando}
+              textoCargando={plan?.variantes > 1 ? `Generando ${plan.variantes} variantes` : 'Generando'}>
+              ✨ {modo === 'simple' ? 'Generar actividad' : `Generar aventura de ${codigosSel.length} actividades`}
+              {plan?.variantes > 1 && ` (${plan.variantes} variantes)`}
+            </BotonIA>
+            {estimacion && (
+              <p className="costo-estimado muted">
+                Costo estimado: <strong>{textoEstimacion(estimacion)}</strong>
+                {!estimacion.desdeCache && !estimacion.sinIA && estimacion.muestrasCalibracion === 0 && ' (aproximado: todavía no hay generaciones para calibrar)'}
+              </p>
+            )}
+          </div>
+        </section>
       )}
 
-      {modo === 'aventura' && vistaPrevia && <RoutePreview datos={vistaPrevia} />}
+      {/* ══ Paso 5 · Revisar variantes y lanzar ══ */}
+      {paso === 5 && (
+        <section className="wiz-panel">
+        {resultado && (
+          <PanelVariantes resultado={resultado}>
+            {!sala && (
+              <div className="lanzar-config">
+                <div className="field" style={{ maxWidth: 260 }}>
+                  <label>Límite de estudiantes</label>
+                  <div className="act-cantidad-ctrl">
+                    <button type="button"
+                      onClick={() => setLimiteEstudiantes((n) => Math.max(1, n - 1))}
+                      disabled={limiteEstudiantes <= 1}>−</button>
+                    <input type="number" min={1} max={30} value={limiteEstudiantes}
+                      onChange={(e) => setLimiteEstudiantes(Math.max(1, Math.min(30, Number(e.target.value) || 1)))} />
+                    <button type="button"
+                      onClick={() => setLimiteEstudiantes((n) => Math.min(30, n + 1))}
+                      disabled={limiteEstudiantes >= 30}>+</button>
+                  </div>
+                  <small className="muted">
+                    Por defecto, los estudiantes de {claseSel?.nombre ?? 'la clase'}. La sala se cierra sola al entrar {limiteEstudiantes}.
+                  </small>
+                </div>
+                <button className="btn-generar" onClick={lanzar} disabled={generando}>
+                  Lanzar a {claseSel?.nombre ?? 'la clase'} →
+                </button>
+              </div>
+            )}
+            {sala && <RoomCode sala={sala} />}
+          </PanelVariantes>
+        )}
+          {sala && (
+            <div className="wiz-otra">
+              <button type="button" className="btn btn-outline" onClick={nuevaActividad}>
+                + Crear otra actividad para {claseSel?.nombre ?? 'este curso'}
+              </button>
+            </div>
+          )}
+        </section>
+      )}
 
       {error && (
         <div className="card" style={{ borderColor: 'var(--accent2)' }}>
@@ -467,49 +593,24 @@ export default function CreateActivityPage() {
         </div>
       )}
 
-      {listo && !resultado && (
-        <>
-          <BotonIA className="btn-generar" onClick={generar} cargando={generando}
-            textoCargando={plan?.variantes > 1 ? `Generando ${plan.variantes} variantes` : 'Generando'}>
-            {modo === 'simple' ? 'Generar actividad' : `Generar aventura de ${codigosSel.length} actividades`}
-            {plan?.variantes > 1 && ` (${plan.variantes} variantes)`}
-          </BotonIA>
-          {estimacion && (
-            <p className="costo-estimado muted">
-              Costo estimado: <strong>{textoEstimacion(estimacion)}</strong>
-              {!estimacion.desdeCache && !estimacion.sinIA && estimacion.muestrasCalibracion === 0 && ' (aproximado: todavía no hay generaciones para calibrar)'}
-            </p>
+      {/* ── Navegación entre pasos ── */}
+      {paso < 5 && (
+        <div className="wiz-nav">
+          {paso > 1
+            ? <button type="button" className="btn btn-outline" onClick={() => ir(paso - 1)} disabled={generando}>← Atrás</button>
+            : <span />}
+          {paso < 4 && (
+            <button type="button" className="btn btn-primary" onClick={() => ir(paso + 1)} disabled={!pasoListo[paso]}>
+              Siguiente →
+            </button>
           )}
-        </>
+        </div>
       )}
-
-      {resultado && (
-        <PanelVariantes resultado={resultado}>
-          {!sala && (
-            <div className="lanzar-config">
-              <div className="field" style={{ maxWidth: 260 }}>
-                <label>Límite de estudiantes</label>
-                <div className="act-cantidad-ctrl">
-                  <button type="button"
-                    onClick={() => setLimiteEstudiantes((n) => Math.max(1, n - 1))}
-                    disabled={limiteEstudiantes <= 1}>−</button>
-                  <input type="number" min={1} max={30} value={limiteEstudiantes}
-                    onChange={(e) => setLimiteEstudiantes(Math.max(1, Math.min(30, Number(e.target.value) || 1)))} />
-                  <button type="button"
-                    onClick={() => setLimiteEstudiantes((n) => Math.min(30, n + 1))}
-                    disabled={limiteEstudiantes >= 30}>+</button>
-                </div>
-                <small className="muted">
-                  Por defecto, los estudiantes de {claseSel?.nombre ?? 'la clase'}. La sala se cierra sola al entrar {limiteEstudiantes}.
-                </small>
-              </div>
-              <button className="btn-generar" onClick={lanzar} disabled={generando}>
-                Lanzar a {claseSel?.nombre ?? 'la clase'} →
-              </button>
-            </div>
-          )}
-          {sala && <RoomCode sala={sala} />}
-        </PanelVariantes>
+      {paso === 5 && !sala && (
+        <div className="wiz-nav">
+          <button type="button" className="btn btn-outline" onClick={() => ir(3)}>← Cambiar actividades</button>
+          <span />
+        </div>
       )}
     </div>
   )

@@ -118,3 +118,40 @@
 .modal-card {
   width: 100%; max-width: 480px; max-height: 90vh; overflow-y: auto;
 }
+
+/* ════════ Árbol desplegable: libro → lecciones → palabras ════════ */
+.voc-intro{ margin:-.4rem 0 0; font-size:.85rem; }
+.voc-arbol{ display:flex; flex-direction:column; gap:.7rem; }
+.voc-nodo{
+  border:1px solid var(--border); border-radius:var(--radius); background:var(--surface);
+  overflow:hidden; transition:border-color .15s ease, box-shadow .15s ease;
+}
+.voc-nodo.abierto{ border-color:var(--accent); }
+.voc-nodo-libro.abierto{ box-shadow:0 4px 14px rgba(0,0,0,.06); }
+.voc-cabecera{
+  width:100%; display:flex; align-items:center; gap:.7rem; text-align:left;
+  padding:.8rem 1rem; border:0; background:transparent; color:var(--txt); font:inherit; cursor:pointer;
+}
+.voc-cabecera:hover{ background:var(--bg); }
+.voc-cabecera:focus-visible{ outline:3px solid var(--accent); outline-offset:-3px; }
+.voc-flecha{ color:var(--txt-muted); font-size:.85rem; transition:transform .18s ease; flex-shrink:0; }
+.voc-nodo.abierto > .voc-cabecera .voc-flecha{ transform:rotate(90deg); color:var(--accent-txt); }
+.voc-icono{ font-size:1.3rem; }
+.voc-cab-txt{ min-width:0; display:flex; flex-direction:column; }
+.voc-cab-txt strong{ font-size:.95rem; }
+.voc-cab-txt small{ color:var(--txt-muted); font-size:.75rem; }
+.voc-nodo-libro > .voc-cabecera .voc-cab-txt strong{ font-family:var(--font-head); font-size:1.02rem; }
+.voc-nodo.abierto > .voc-cabecera{ background:var(--accent-tint); }
+
+.voc-hijos{ padding:.4rem .9rem .9rem; display:flex; flex-direction:column; gap:.5rem; }
+.voc-nodo-leccion{ border-radius:10px; }
+.voc-nodo-leccion > .voc-cabecera{ padding:.6rem .8rem; }
+.voc-nodo-leccion.abierto .voc-leccion-num{ background:var(--accent); color:var(--white); }
+.voc-palabras{ padding:.2rem .8rem .9rem; }
+.voc-palabras-barra{ display:flex; flex-wrap:wrap; gap:.6rem; align-items:center; justify-content:space-between; }
+.voc-palabras-barra .voc-buscar{ flex:1 1 220px; }
+.voc-palabras .voc-tabla-scroll{ max-height:55vh; border:1px solid var(--border); border-radius:10px; }
+
+@media (prefers-reduced-motion: reduce){
+  .voc-flecha, .voc-nodo{ transition:none; }
+}

@@ -56,8 +56,8 @@ export default function DashboardHome() {
 
         <Link to="/dashboard/resultados" className="card home-card">
           <div className="home-card-icon">📊</div>
-          <h3>Resultados</h3>
-          <p className="muted">Puntajes y el recorrido que hizo cada estudiante.</p>
+          <h3>Gestión de cursos</h3>
+          <p className="muted">Las notas de cada estudiante por actividad, y su nota final.</p>
         </Link>
 
         <Link to="/dashboard/panel" className="card home-card">

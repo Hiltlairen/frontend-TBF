@@ -1,184 +1,180 @@
 // ============================================================
-// VocabularyPage.jsx — Vista de vocabulario tipo hoja de cálculo
+// VocabularyPage.jsx — Vocabulario en menús desplegables
 // ============================================================
-// Estructura (como una hoja de Excel):
-//   · Arriba  → pestañas con los LIBROS. Se elige uno.
-//   · Izquierda → columna vertical con las LECCIONES del libro,
-//                 cada una con su conteo de palabras.
-//   · Derecha → ocupa la mayor parte: el VOCABULARIO de la
-//               lección seleccionada, en tabla.
+// Tres niveles que se abren uno dentro del otro:
+//   LIBRO  →  sus LECCIONES  →  las PALABRAS de la lección (tabla).
+// Cada nivel se despliega al tocarlo y se puede tener más de uno
+// abierto a la vez. El vocabulario de un libro se pide la primera vez
+// que se abre (GET /api/library/libros/:id/hoja) y queda en memoria.
 // ============================================================
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState } from 'react'
 import { api } from '../../lib/api.js'
 import AddVocabularyModal from './AddVocabularyModal.jsx'
 import './Vocabulary.css'
 
 export default function VocabularyPage() {
   const [books, setBooks] = useState([])
-  const [bookId, setBookId] = useState(null)
-  const [hoja, setHoja] = useState([])        // [{ id, numero, titulo, total, vocabulario:[] }]
-  const [lessonId, setLessonId] = useState(null)
-  const [cargando, setCargando] = useState(false)
-  const [showAdd, setShowAdd] = useState(false)
+  const [hojas, setHojas] = useState({})            // { bookId: [{ id, numero, titulo, temas, total, vocabulario }] }
+  const [cargandoLibro, setCargandoLibro] = useState(null)
+  const [librosAbiertos, setLibrosAbiertos] = useState(() => new Set())
+  const [leccionesAbiertas, setLeccionesAbiertas] = useState(() => new Set())
+  const [filtros, setFiltros] = useState({})        // { lessonId: texto }
+  const [agregarEn, setAgregarEn] = useState(null)  // { bookId, lessonId } del modal abierto
   const [aviso, setAviso] = useState(null)
   const [error, setError] = useState(null)
-  const [filtro, setFiltro] = useState('')
 
-  // 1) Cargar libros y abrir el primero por defecto
   useEffect(() => {
     api.biblioteca.libros()
-      .then((r) => {
-        setBooks(r.libros)
-        if (r.libros[0]) setBookId(r.libros[0].id)
-      })
+      .then((r) => setBooks(r.libros))
       .catch((e) => setError(e.message))
   }, [])
 
-  // 2) Cargar la hoja completa del libro elegido
-  const cargarHoja = useCallback(() => {
-    if (!bookId) return
-    setCargando(true); setError(null)
-    api.biblioteca.hojaLibro(bookId)
-      .then((r) => {
-        setHoja(r.lecciones)
-        // Mantener la lección elegida si sigue existiendo; si no, la primera
-        setLessonId((prev) =>
-          r.lecciones.some((l) => l.id === prev) ? prev : (r.lecciones[0]?.id ?? null)
-        )
-      })
-      .catch((e) => setError(e.message))
-      .finally(() => setCargando(false))
-  }, [bookId])
+  async function cargarHoja(bookId) {
+    setCargandoLibro(bookId); setError(null)
+    try {
+      const r = await api.biblioteca.hojaLibro(bookId)
+      setHojas((prev) => ({ ...prev, [bookId]: r.lecciones }))
+    } catch (e) { setError(e.message) }
+    finally { setCargandoLibro(null) }
+  }
 
-  useEffect(cargarHoja, [cargarHoja])
+  function alternarLibro(bookId) {
+    setLibrosAbiertos((prev) => {
+      const s = new Set(prev)
+      if (s.has(bookId)) s.delete(bookId)
+      else { s.add(bookId); if (!hojas[bookId]) cargarHoja(bookId) }
+      return s
+    })
+  }
 
-  const leccion = hoja.find((l) => l.id === lessonId) ?? null
-  const lessonsParaModal = hoja.map((l) => ({ id: l.id, numero: l.numero, titulo: l.titulo }))
+  function alternarLeccion(lessonId) {
+    setLeccionesAbiertas((prev) => {
+      const s = new Set(prev)
+      if (s.has(lessonId)) s.delete(lessonId); else s.add(lessonId)
+      return s
+    })
+  }
 
-  const vocabFiltrado = (leccion?.vocabulario ?? []).filter((v) => {
-    if (!filtro.trim()) return true
-    const q = filtro.toLowerCase()
-    return (
-      v.ingles?.toLowerCase().includes(q) ||
-      v.espanol?.toLowerCase().includes(q) ||
-      v.categoria?.toLowerCase().includes(q)
-    )
-  })
+  const filtrar = (vocab, texto) => {
+    const q = (texto ?? '').trim().toLowerCase()
+    if (!q) return vocab
+    return vocab.filter((v) =>
+      v.ingles?.toLowerCase().includes(q) || v.espanol?.toLowerCase().includes(q) || v.categoria?.toLowerCase().includes(q))
+  }
 
   return (
     <div className="voc-page">
       <div className="section-title">
         <h2>Vocabulario</h2>
-        <button className="btn btn-primary" onClick={() => setShowAdd(true)} disabled={!leccion}>
-          + Agregar palabra
-        </button>
       </div>
+      <p className="muted voc-intro">Abre un libro para ver sus lecciones, y una lección para ver sus palabras.</p>
 
       {error && <p className="badge badge-error" style={{ display: 'block' }}>{error}</p>}
       {aviso && <p className="badge badge-ok" style={{ display: 'block' }}>{aviso}</p>}
 
-      {/* ── Pestañas de LIBROS (arriba) ── */}
-      <div className="voc-libros" role="tablist">
-        {books.map((b) => (
-          <button
-            key={b.id}
-            role="tab"
-            aria-selected={b.id === bookId}
-            className={`voc-libro-tab ${b.id === bookId ? 'activo' : ''}`}
-            onClick={() => setBookId(b.id)}
-          >
-            {b.nombre}
-          </button>
-        ))}
-      </div>
+      <div className="voc-arbol">
+        {books.map((b) => {
+          const abierto = librosAbiertos.has(b.id)
+          const lecciones = hojas[b.id]
+          const totalLibro = lecciones?.reduce((n, l) => n + l.total, 0)
+          return (
+            <section key={b.id} className={`voc-nodo voc-nodo-libro ${abierto ? 'abierto' : ''}`}>
+              <button type="button" className="voc-cabecera" aria-expanded={abierto} onClick={() => alternarLibro(b.id)}>
+                <span className="voc-flecha" aria-hidden="true">▸</span>
+                <span className="voc-icono" aria-hidden="true">📘</span>
+                <span className="voc-cab-txt">
+                  <strong>{b.nombre}</strong>
+                  <small>
+                    Nivel {b.nivel}
+                    {lecciones && ` · ${lecciones.length} lecciones · ${totalLibro} palabras`}
+                  </small>
+                </span>
+              </button>
 
-      {/* ── Hoja: lecciones (izq) + vocabulario (der) ── */}
-      <div className="voc-hoja">
-        <aside className="voc-lecciones" role="tablist" aria-label="Lecciones">
-          {cargando && hoja.length === 0 && <p className="voc-cargando">Cargando…</p>}
-          {hoja.map((l) => (
-            <button
-              key={l.id}
-              role="tab"
-              aria-selected={l.id === lessonId}
-              className={`voc-leccion ${l.id === lessonId ? 'activa' : ''}`}
-              onClick={() => { setLessonId(l.id); setFiltro('') }}
-            >
-              <span className="voc-leccion-num">L{l.numero}</span>
-              <span className="voc-leccion-txt">
-                <strong>{l.titulo}</strong>
-                <small>{l.total} palabra{l.total === 1 ? '' : 's'}</small>
-              </span>
-            </button>
-          ))}
-        </aside>
+              {abierto && (
+                <div className="voc-hijos">
+                  {cargandoLibro === b.id && <p className="voc-cargando">Cargando lecciones…</p>}
+                  {lecciones?.map((l) => {
+                    const lAbierta = leccionesAbiertas.has(l.id)
+                    const vocab = filtrar(l.vocabulario, filtros[l.id])
+                    return (
+                      <section key={l.id} className={`voc-nodo voc-nodo-leccion ${lAbierta ? 'abierto' : ''}`}>
+                        <button type="button" className="voc-cabecera" aria-expanded={lAbierta} onClick={() => alternarLeccion(l.id)}>
+                          <span className="voc-flecha" aria-hidden="true">▸</span>
+                          <span className="voc-leccion-num">L{l.numero}</span>
+                          <span className="voc-cab-txt">
+                            <strong>{l.titulo}</strong>
+                            <small>{l.total} palabra{l.total === 1 ? '' : 's'}</small>
+                          </span>
+                        </button>
 
-        <section className="voc-detalle">
-          {!leccion && !cargando && (
-            <div className="voc-vacio">Selecciona una lección para ver su vocabulario.</div>
-          )}
+                        {lAbierta && (
+                          <div className="voc-hijos voc-palabras">
+                            {l.temas && <p className="voc-temas">{l.temas}</p>}
+                            <div className="voc-palabras-barra">
+                              <input className="voc-buscar" placeholder="Filtrar palabra o categoría…"
+                                value={filtros[l.id] ?? ''}
+                                onChange={(e) => setFiltros((prev) => ({ ...prev, [l.id]: e.target.value }))} />
+                              <button className="btn btn-primary" type="button"
+                                onClick={() => { setAviso(null); setAgregarEn({ bookId: b.id, lessonId: l.id }) }}>
+                                + Agregar palabra
+                              </button>
+                            </div>
 
-          {leccion && (
-            <>
-              <header className="voc-detalle-cab">
-                <div>
-                  <h3>Lección {leccion.numero} — {leccion.titulo}</h3>
-                  {leccion.temas && <p className="voc-temas">{leccion.temas}</p>}
-                </div>
-                <input
-                  className="voc-buscar"
-                  placeholder="Filtrar palabra o categoría…"
-                  value={filtro}
-                  onChange={(e) => setFiltro(e.target.value)}
-                />
-              </header>
-
-              {vocabFiltrado.length === 0 ? (
-                <div className="voc-vacio">
-                  {leccion.total === 0
-                    ? 'Esta lección aún no tiene vocabulario. Usa “+ Agregar palabra”.'
-                    : 'Ninguna palabra coincide con el filtro.'}
-                </div>
-              ) : (
-                <div className="voc-tabla-scroll">
-                  <table className="voc-tabla">
-                    <thead>
-                      <tr>
-                        <th className="voc-col-n">#</th>
-                        <th>Categoría</th>
-                        <th>Inglés</th>
-                        <th>Español</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {vocabFiltrado.map((v, i) => (
-                        <tr key={v.id}>
-                          <td className="voc-col-n">{i + 1}</td>
-                          <td><span className="voc-cat">{v.categoria}</span></td>
-                          <td className="voc-en">{v.ingles}</td>
-                          <td>{v.espanol}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                            {vocab.length === 0 ? (
+                              <div className="voc-vacio">
+                                {l.total === 0
+                                  ? 'Esta lección aún no tiene vocabulario. Usa “+ Agregar palabra”.'
+                                  : 'Ninguna palabra coincide con el filtro.'}
+                              </div>
+                            ) : (
+                              <div className="voc-tabla-scroll">
+                                <table className="voc-tabla">
+                                  <thead>
+                                    <tr>
+                                      <th className="voc-col-n">#</th>
+                                      <th>Categoría</th>
+                                      <th>Inglés</th>
+                                      <th>Español</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {vocab.map((v, i) => (
+                                      <tr key={v.id}>
+                                        <td className="voc-col-n">{i + 1}</td>
+                                        <td><span className="voc-cat">{v.categoria}</span></td>
+                                        <td className="voc-en">{v.ingles}</td>
+                                        <td>{v.espanol}</td>
+                                      </tr>
+                                    ))}
+                                  </tbody>
+                                </table>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </section>
+                    )
+                  })}
                 </div>
               )}
-            </>
-          )}
-        </section>
+            </section>
+          )
+        })}
       </div>
 
-      {showAdd && (
+      {agregarEn && (
         <AddVocabularyModal
-          lessons={lessonsParaModal}
-          defaultLessonId={lessonId}
-          onClose={() => setShowAdd(false)}
+          lessons={(hojas[agregarEn.bookId] ?? []).map((l) => ({ id: l.id, numero: l.numero, titulo: l.titulo }))}
+          defaultLessonId={agregarEn.lessonId}
+          onClose={() => setAgregarEn(null)}
           onSaved={(enCuraduria) => {
-            setShowAdd(false)
+            const { bookId } = agregarEn
+            setAgregarEn(null)
             setAviso(enCuraduria
               ? 'Palabra enviada a curaduría; aparecerá al aprobarse.'
               : 'Palabra agregada.')
-            cargarHoja()
+            cargarHoja(bookId)
           }}
         />
       )}

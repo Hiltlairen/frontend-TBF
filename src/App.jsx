@@ -14,6 +14,7 @@ import Clases from './pages/Clases.jsx'
 import PanelDocente from './pages/PanelDocente.jsx'
 import PanelClase from './pages/PanelClase.jsx'
 import PanelActividad from './pages/PanelActividad.jsx'
+import GestionCursos from './pages/GestionCursos.jsx'
 import MiPerfil from './pages/MiPerfil.jsx'
 import CreateActivityPage from './components/create-activity/CreateActivityPage.jsx'
 import ResultsPage from './components/results/ResultsPage.jsx'
@@ -60,7 +61,8 @@ export default function App() {
         }>
           <Route index element={<DashboardHome />} />
           <Route path="actividades/crear" element={<CreateActivityPage />} />
-          <Route path="resultados" element={<ResultsPage />} />
+          {/* "Resultados" pasó a ser Gestión de cursos (notas por curso) */}
+          <Route path="resultados" element={<GestionCursos />} />
           <Route path="panel" element={<PanelDocente />} />
           <Route path="panel/:claseId" element={<PanelClase />} />
           <Route path="panel/:claseId/:salaId" element={<PanelActividad />} />

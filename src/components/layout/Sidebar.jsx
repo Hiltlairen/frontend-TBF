@@ -8,7 +8,7 @@ import './Sidebar.css'
 const MENU = [
   { to: '/dashboard',                   label: 'Inicio',            icono: '🏠', roles: ['docente', 'admin'], exacto: true },
   { to: '/dashboard/actividades/crear', label: 'Crear actividad',   icono: '🧩', roles: ['docente', 'admin'] },
-  { to: '/dashboard/resultados',        label: 'Resultados',        icono: '📊', roles: ['docente', 'admin'] },
+  { to: '/dashboard/resultados',        label: 'Gestión de cursos', icono: '📊', roles: ['docente', 'admin'] },
   { to: '/dashboard/vocabulario',       label: 'Vocabulario',       icono: '📚', roles: ['docente', 'admin'] },
   { to: '/dashboard/usuarios',          label: 'Usuarios',          icono: '👥', roles: ['admin'] },
   { to: '/dashboard/clases',            label: 'Clases',            icono: '🏫', roles: ['admin'] },

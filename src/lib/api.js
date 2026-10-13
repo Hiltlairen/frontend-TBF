@@ -192,6 +192,8 @@ export const api = {
     agregarEstudiantes:  (id, filas) => post(`/api/clases/${id}/estudiantes`, { filas }),
     darDeBajaEstudiante: (id) => post(`/api/clases/estudiantes/${id}/baja`, {}),
     finalizar:           (id) => post(`/api/clases/${id}/finalizar`, {}),
+    // Deshace "Finalizar" (solo dentro de la ventana de retención).
+    reactivar:           (id) => post(`/api/clases/${id}/reactivar`, {}),
     exportar:            (id) => descargar(`/api/clases/${id}/exportar`),
     purgarEstudiante:    (id) => post(`/api/clases/estudiantes/${id}/purgar`, {}),
 
@@ -202,5 +204,8 @@ export const api = {
     resultadosActividad:  (id, salaId) => get(`/api/clases/${id}/actividades/${salaId}/resultados`),
     exportarActividadCSV: (id, salaId) => descargar(`/api/clases/${id}/actividades/${salaId}/exportar.csv`),
     exportarActividadPDF: (id, salaId) => descargar(`/api/clases/${id}/actividades/${salaId}/exportar.pdf`),
+    // Gestión de cursos: estudiantes × actividades con su nota.
+    notas:                (id) => get(`/api/clases/${id}/notas`),
+    exportarNotas:        (id) => descargar(`/api/clases/${id}/notas.csv`),
   },
 }
