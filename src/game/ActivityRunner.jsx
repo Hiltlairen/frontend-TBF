@@ -623,7 +623,8 @@ function Sopa({ palabras, filas, columnas, direcciones, onFinish, onSalir }) {
         presiona Enter en la primera letra y de nuevo en la última.
       </p>
 
-      <div className="ar-grid" style={{ gridTemplateColumns: `repeat(${columnas}, 1fr)` }}
+      {/* --cols/--filas: la vista de PC dimensiona el tablero según su forma (ActivityRunner.css) */}
+      <div className="ar-grid" style={{ gridTemplateColumns: `repeat(${columnas}, 1fr)`, '--cols': columnas, '--filas': grid.length }}
         onPointerUp={terminarSeleccion} onPointerLeave={() => arrastrando && terminarSeleccion()}>
         {grid.map((fila, r) => fila.map((letra, c) => {
           const marcada = enSeleccion(r, c)
@@ -857,7 +858,10 @@ function Laberinto({ niveles, vidasIniciales = 3, tiempoPorNivel = 40, onFinish,
 
       <p className="lab-oracion">{oracionParcial}<span className="lab-traduccion"> — {nivel.traduccion}</span></p>
 
-      <div className="lab-grid" style={{ gridTemplateColumns: `repeat(${mapa.columnas}, 1fr)` }}>
+      <div className="lab-grid" style={{
+        gridTemplateColumns: `repeat(${mapa.columnas}, 1fr)`,
+        '--cols': mapa.columnas, '--filas': mapa.tipos.length,
+      }}>
         {mapa.tipos.map((filaCeldas, r) => filaCeldas.map((tipo, c) => {
           const esPersonaje = pos.fila === r && pos.columna === c
           const objetivo = tipo === 'objetivo' ? mapa.objetivos.find((o) => o.fila === r && o.columna === c) : null

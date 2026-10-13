@@ -5,11 +5,13 @@
 //   · Leerla: cada pregunta con su respuesta correcta (la arma el
 //     servidor con el mismo código que después la califica).
 //   · Probarla: abre la actividad tal cual la verá el estudiante, en
-//     el mismo celular. Lo que se responde ahí NO se guarda.
+//     su versión de celular o de PC (se puede alternar para revisar
+//     las dos). Lo que se responde ahí NO se guarda.
 // ============================================================
 import { useEffect, useState } from 'react'
 import { api } from '../../lib/api.js'
 import { useCerrarConEscape } from '../../lib/a11y.js'
+import { useVistaEscritorio } from '../../lib/useVistaEscritorio.js'
 import ActivityRunner from '../../game/ActivityRunner.jsx'
 import PhoneOverlay from '../../game/PhoneOverlay.jsx'
 import '../../game/Game.css'
@@ -19,6 +21,12 @@ export default function HojaRespuestas({ registroId, variante = 1 }) {
   const [error, setError] = useState(null)
   const [probando, setProbando] = useState(null)   // sección abierta en el celular
   const [prueba, setPrueba] = useState(null)       // { codigo, nota } de la última prueba
+  // La prueba arranca en la vista que le toca a esta pantalla; en una PC
+  // el docente puede cambiar a la del celular para ver cómo la juega
+  // un estudiante desde el teléfono.
+  const pantallaAncha = useVistaEscritorio()
+  const [vista, setVista] = useState(null)         // null = la de esta pantalla
+  const vistaPrueba = vista ?? (pantallaAncha ? 'escritorio' : 'movil')
 
   useEffect(() => {
     let vigente = true
@@ -76,17 +84,25 @@ export default function HojaRespuestas({ registroId, variante = 1 }) {
 
       {probando && (
         <div className="hoja-probar">
-          <PhoneOverlay titulo={`Vista del estudiante · ${probando.titulo}`}>
-            <ActivityRunner
+          <PhoneOverlay titulo={`Vista del estudiante · ${probando.titulo}`} vista={vistaPrueba}>
+            <ActivityRunner key={vistaPrueba}
               codigo={probando.codigo}
               contenido={probando.contenido}
               onFinish={(nota) => { setPrueba({ codigo: probando.codigo, nota: Math.round(nota ?? 0) }); setProbando(null) }}
               onSalir={() => setProbando(null)}
             />
           </PhoneOverlay>
-          <button type="button" className="hoja-cerrar" onClick={() => setProbando(null)}>
-            ✕ Cerrar vista previa
-          </button>
+          <div className="hoja-probar-barra">
+            {pantallaAncha && (
+              <div className="hoja-vista" role="group" aria-label="Versión de la actividad">
+                <button type="button" aria-pressed={vistaPrueba === 'movil'} onClick={() => setVista('movil')}>📱 Celular</button>
+                <button type="button" aria-pressed={vistaPrueba === 'escritorio'} onClick={() => setVista('escritorio')}>🖥 PC</button>
+              </div>
+            )}
+            <button type="button" className="hoja-cerrar" onClick={() => setProbando(null)}>
+              ✕ Cerrar vista previa
+            </button>
+          </div>
         </div>
       )}
     </div>

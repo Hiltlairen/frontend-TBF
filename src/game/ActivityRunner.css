@@ -1024,6 +1024,175 @@
 }
 
 /* ════════════════════════════════════════════════════════════
+   VISTA ESCRITORIO
+   Cuando PhoneOverlay se abre como ventana ancha (.tel-escritorio, en
+   pantallas de PC — ver lib/useVistaEscritorio.js) cada actividad se
+   reorganiza para aprovechar el ancho. Es solo CSS: la lógica y el
+   orden del HTML son los mismos que en el celular.
+
+   Reglas generales:
+     · El contenido se centra en una columna cómoda de leer (--ar-ancho)
+       en vez de estirarse de borde a borde.
+     · Las actividades con "tablero" (sopa, laberinto, escenario) o con
+       contexto largo (chat, canción) pasan a DOS columnas: el tablero o
+       el contexto a la izquierda, las respuestas a la derecha, para que
+       todo quepa sin hacer scroll.
+     · El tablero se limita por el ALTO de la ventana: en una pantalla
+       ancha pero baja, la cuadrícula sigue entrando completa.
+   ════════════════════════════════════════════════════════════ */
+.tel-escritorio{
+  --ar-ancho: 980px;
+  /* Lo que ocupan la barra de la ventana, la barra de progreso, el
+     encabezado y el pie: el resto es para el tablero. */
+  --ar-alto-tablero: calc(min(820px, 100dvh - 4rem) - 400px);
+}
+.tel-escritorio .ar-top{
+  width:100%; max-width:calc(var(--ar-ancho) + 2.5rem); margin-inline:auto;
+  padding:1rem 1.25rem .5rem;
+}
+.tel-escritorio .ar-cuerpo{
+  padding:.75rem max(1.5rem, calc((100% - var(--ar-ancho)) / 2)) 1.75rem;
+  gap:1.15rem;
+}
+.tel-escritorio .ar-pie{
+  flex-direction:row; flex-wrap:wrap; align-items:center; justify-content:center; gap:.5rem 1.25rem;
+  padding:.9rem 1.5rem;
+}
+.tel-escritorio .ar-pie > *{ flex:0 1 auto; }
+.tel-escritorio .ar-cta{ width:min(420px, 100%); }
+.tel-escritorio .ar-instrucciones{ font-size:.9rem; }
+
+/* Tipografía: en pantalla grande se lee de más lejos */
+.tel-escritorio .ar-titulo{ font-size:1.9rem; }
+.tel-escritorio .ar-enunciado{ font-size:1.15rem; }
+.tel-escritorio .ar-globo{ font-size:1.2rem; padding:.9rem 1.1rem; }
+.tel-escritorio .ar-personaje{ width:128px; }
+.tel-escritorio .ar-personaje.chico{ width:60px; }
+.tel-escritorio .ar-burbuja{ font-size:1rem; max-width:80%; }
+.tel-escritorio .ar-panel-fila{ font-size:1.05rem; }
+
+/* Hoja de resultado: tarjeta centrada en vez de cubrir todo el ancho */
+.tel-escritorio .ar-hoja{
+  width:min(760px, 100%); margin-inline:auto;
+  padding:1.25rem 1.75rem 1.4rem;
+}
+
+/* ── Quiz (conversación, canción, anuncios, indicaciones…) ──
+   Opciones en 2 columnas; si hay contexto, contexto | opciones. */
+.tel-escritorio .ar-opciones{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.75rem; }
+.tel-escritorio .ar-opcion{ min-height:64px; font-size:1.05rem; }
+.tel-escritorio .ar-cuerpo:has(> .ar-dialogo),
+.tel-escritorio .ar-cuerpo:has(> .ar-panel):has(> .ar-opciones){
+  display:grid; align-content:start; column-gap:2rem;
+  grid-template-columns:minmax(0, 1.15fr) minmax(0, 1fr);
+}
+.tel-escritorio .ar-cuerpo:has(> .ar-dialogo) > *,
+.tel-escritorio .ar-cuerpo:has(> .ar-panel):has(> .ar-opciones) > *{ grid-column:2; }
+.tel-escritorio .ar-cuerpo:has(> .ar-dialogo) > .ar-encabezado,
+.tel-escritorio .ar-cuerpo:has(> .ar-panel):has(> .ar-opciones) > .ar-encabezado{ grid-column:1 / -1; }
+.tel-escritorio .ar-cuerpo > .ar-dialogo,
+.tel-escritorio .ar-cuerpo:has(> .ar-opciones) > .ar-panel{ grid-column:1; grid-row:2 / span 3; align-self:start; }
+.tel-escritorio .ar-cuerpo:has(> .ar-dialogo) .ar-opciones,
+.tel-escritorio .ar-cuerpo:has(> .ar-panel):has(> .ar-opciones) .ar-opciones{ grid-template-columns:1fr; }
+
+/* ── Traducir / ordenar con fichas ── */
+.tel-escritorio .ar-escena,
+.tel-escritorio .ar-renglones,
+.tel-escritorio .ar-fichas{ width:100%; max-width:820px; margin-inline:auto; }
+.tel-escritorio .ar-ficha{ min-height:52px; font-size:1.05rem; padding:.6rem 1.1rem; }
+.tel-escritorio .ar-elegidos li button{ font-size:1rem; padding:.8rem .9rem .8rem 2.6rem; }
+
+/* ── Emparejar (texto e imágenes) ── */
+.tel-escritorio .ar-columnas{ width:100%; max-width:860px; margin-inline:auto; column-gap:2.5rem; }
+.tel-escritorio .ar-celda{ min-height:64px; font-size:1.05rem; }
+.tel-escritorio .ar-celda-img{ max-width:96px; height:72px; }
+
+/* ── Sopa de letras: cuadrícula | lista de palabras ── */
+.tel-escritorio .ar-cuerpo:has(> .ar-grid){
+  display:grid; align-content:start; column-gap:2rem;
+  grid-template-columns:minmax(0, 1fr) minmax(200px, 260px);
+}
+.tel-escritorio .ar-cuerpo:has(> .ar-grid) > *{ grid-column:1 / -1; }
+/* Ancho del tablero: que entre ENTERO en el alto disponible (si tiene
+   más filas que columnas, se angosta en proporción) y sin celdas
+   gigantes (máx. 52px por letra). --cols/--filas los pone el JSX. */
+.tel-escritorio .ar-cuerpo > .ar-grid{
+  grid-column:1; width:100%; justify-self:center;
+  max-width:max(300px, min(var(--ar-alto-tablero) * var(--cols, 12) / var(--filas, 12), var(--cols, 12) * 52px));
+}
+.tel-escritorio .ar-celda-sopa{ font-size:clamp(.8rem, 1.6vh, 1.05rem); }
+.tel-escritorio .ar-cuerpo > .ar-lista-palabras{
+  grid-column:2; grid-row:3; align-self:start;
+  flex-direction:column; flex-wrap:nowrap; align-items:stretch;
+}
+.tel-escritorio .ar-lista-palabras span{ font-size:.9rem; padding:.45rem .8rem; text-align:center; }
+
+/* ── Redacción ── */
+.tel-escritorio .ar-cuerpo:has(> .ar-textarea) > *{ width:100%; max-width:820px; margin-inline:auto; }
+.tel-escritorio .ar-textarea{ min-height:240px; font-size:1.05rem; }
+
+/* ── Pronunciación: tarjetas en cuadrícula ── */
+.tel-escritorio .ar-pron{ display:grid; grid-template-columns:repeat(auto-fill, minmax(300px, 1fr)); gap:1rem; }
+
+/* ── Laberinto: tablero | vidas, pasos, tiempo y oración ── */
+.tel-escritorio .ar-cuerpo:has(> .lab-grid){
+  display:grid; align-content:start; column-gap:2rem;
+  grid-template-columns:minmax(0, 1fr) minmax(220px, 300px);
+}
+.tel-escritorio .ar-cuerpo:has(> .lab-grid) > *{ grid-column:1 / -1; }
+.tel-escritorio .ar-cuerpo > .lab-grid{
+  grid-column:1; grid-row:2 / span 3; width:100%; justify-self:center; align-self:start;
+  max-width:max(300px, min((var(--ar-alto-tablero) + 40px) * var(--cols, 6) / var(--filas, 6), var(--cols, 6) * 110px));
+}
+.tel-escritorio .ar-cuerpo > .lab-hud{ grid-column:2; grid-row:2; flex-direction:column; align-items:stretch; }
+.tel-escritorio .ar-cuerpo > .lab-oracion{ grid-column:2; grid-row:3; align-self:start; font-size:1.1rem; }
+.tel-escritorio .lab-hud-item{ font-size:.95rem; padding:.45rem .8rem; }
+.tel-escritorio .lab-celda{ font-size:clamp(.72rem, 1.5vh, .95rem); }
+.tel-escritorio .lab-personaje{ font-size:1.5rem; }
+
+/* ── Rompecabezas de oración ── */
+.tel-escritorio .rc-tira,
+.tel-escritorio .rc-banco{ width:100%; max-width:880px; margin-inline:auto; }
+.tel-escritorio .rc-tira{ min-height:72px; padding:.6rem; }
+.tel-escritorio .rc-pieza{ min-height:52px; font-size:1.02rem; padding:.55rem .85rem; }
+
+/* ── Armar escenario: escena con zonas | bandeja de objetos ── */
+.tel-escritorio .ar-cuerpo:has(> .ae-escena){
+  display:grid; align-content:start; column-gap:2rem;
+  grid-template-columns:minmax(0, 1.5fr) minmax(240px, 1fr);
+}
+.tel-escritorio .ar-cuerpo:has(> .ae-escena) > *{ grid-column:1 / -1; }
+.tel-escritorio .ar-cuerpo > .ae-escena{ grid-column:1; grid-row:2 / span 2; }
+.tel-escritorio .ar-cuerpo:has(> .ae-escena) > .ar-vacio{ grid-column:2; grid-row:2; align-self:end; }
+.tel-escritorio .ar-cuerpo > .ae-bandeja{ grid-column:2; grid-row:3; align-self:start; justify-content:flex-start; }
+.tel-escritorio .ae-fondo{ max-height:190px; }
+.tel-escritorio .ae-zonas{ display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.6rem; padding:.8rem; }
+.tel-escritorio .ae-descarte{ grid-column:1 / -1; }
+.tel-escritorio .ae-zona-titulo{ font-size:.95rem; }
+.tel-escritorio .ae-objeto{ width:96px; }
+.tel-escritorio .ae-objeto .spr-img,
+.tel-escritorio .ae-objeto .spr-fallback{ width:44px; height:44px; min-width:44px; min-height:44px; }
+
+/* ── Impostor: tarjetas más grandes, 3 por fila (las rondas traen 6) ── */
+.tel-escritorio .imp-grid{
+  width:100%; max-width:760px; margin-inline:auto;
+  grid-template-columns:repeat(3, minmax(0, 1fr)); gap:.9rem;
+}
+.tel-escritorio .imp-tarjeta{ font-size:.95rem; padding:.85rem .6rem; }
+.tel-escritorio .imp-img{ max-width:84px; height:64px; }
+
+/* ── Básquet: cancha más grande (los tiros se miden en vivo,
+   así que el balón sigue cayendo en el aro) ── */
+.tel-escritorio .bq-cancha{
+  width:100%; max-width:880px; margin-inline:auto;
+  height:clamp(360px, calc(var(--ar-alto-tablero) + 60px), 540px);
+}
+.tel-escritorio .bq-tablero{ width:min(50%, 360px); }
+.tel-escritorio .bq-palabra{ font-size:1.8rem; }
+.tel-escritorio .bq-texto{ font-size:1.02rem; padding:.6rem .5rem; }
+.tel-escritorio .bq-spot{ width:26%; }
+
+/* ════════════════════════════════════════════════════════════
    RESPONSIVE
    ════════════════════════════════════════════════════════════ */
 /* En una pantalla ancha (tablet/escritorio) las opciones largas caben de

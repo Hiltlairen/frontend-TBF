@@ -217,6 +217,40 @@
 }
 .act-card-btn:disabled{ opacity:.45; cursor:not-allowed; }
 .act-card-sel{ border-color:var(--accent); background:var(--accent-tint); }
+
+/* Mini animación al pasar por una actividad que se puede elegir: la
+   tarjeta se eleva, el borde toma el color de acento y los íconos
+   (escenario / interacción) se asoman un poco. Al elegirla, un "pop". */
+.act-card{
+  transition: transform .18s ease, box-shadow .18s ease, border-color .18s ease, background-color .18s ease;
+}
+.act-card:has(.act-card-btn:not(:disabled)):hover,
+.act-card:has(.act-card-btn:focus-visible){
+  transform: translateY(-3px);
+  box-shadow: 0 8px 18px rgba(0, 0, 0, .12);
+  border-color: var(--accent);
+}
+.act-card:has(.act-card-btn:not(:disabled)):active{ transform: translateY(-1px) scale(.98); }
+.act-card-btn:focus-visible{ outline:3px solid var(--accent); outline-offset:-3px; }
+.act-card-btn .act-cab strong,
+.act-card-btn .act-marcas span{ display:inline-block; transition: transform .18s ease, color .18s ease; }
+.act-card-btn:not(:disabled):hover .act-cab strong{ color: var(--accent-txt); }
+.act-card-btn:not(:disabled):hover .act-marcas span{ transform: translateX(2px); }
+.act-card-btn:not(:disabled):hover .act-marcas span + span{ transition-delay: .05s; }
+.act-card-sel{ animation: act-pop .28s ease-out; }
+@keyframes act-pop{
+  0%   { transform: scale(.97); }
+  60%  { transform: scale(1.03); }
+  100% { transform: scale(1); }
+}
+@media (prefers-reduced-motion: reduce){
+  .act-card, .act-card-btn .act-cab strong, .act-card-btn .act-marcas span{ transition: none; }
+  .act-card:has(.act-card-btn:not(:disabled)):hover,
+  .act-card:has(.act-card-btn:focus-visible),
+  .act-card:has(.act-card-btn:not(:disabled)):active{ transform: none; }
+  .act-card-btn:not(:disabled):hover .act-marcas span{ transform: none; }
+  .act-card-sel{ animation: none; }
+}
 .act-cab{ display:flex; align-items:center; justify-content:space-between; gap:.4rem; }
 .act-cab strong{ font-size:.9rem; font-family:var(--font-head); }
 .act-codigo{ font-size:.7rem; color:var(--txt-muted); }
@@ -294,7 +328,18 @@
 /* ── Configuración de lanzamiento (límite de estudiantes) ── */
 .lanzar-config{ display:flex; flex-direction:column; gap:.8rem; }
 
-/* ════════ Costo estimado, versiones y revisión (PanelVersiones.jsx) ════════ */
+/* ── Curso fijo (la clase asignada) y plan de variantes ── */
+.curso-fijo{
+  display:grid; grid-template-columns:repeat(auto-fit, minmax(120px, 1fr)); gap:.6rem;
+  margin:0 0 .6rem; padding:.7rem .8rem; border:1px solid var(--border); border-radius:10px;
+}
+.curso-fijo div{ display:flex; flex-direction:column; gap:.1rem; min-width:0; }
+.curso-fijo dt{ font-size:.7rem; text-transform:uppercase; letter-spacing:.05em; color:var(--txt-muted); }
+.curso-fijo dd{ margin:0; font-size:.95rem; overflow-wrap:anywhere; }
+.curso-fijo-nota{ margin:0; font-size:.8rem; }
+
+/* ════════ Costo estimado, variantes y revisión (PanelVariantes.jsx) ════════ */
+.ver-reparto{ margin:.2rem 0 .8rem; font-size:.85rem; line-height:1.45; }
 .costo-estimado{ margin:.5rem 0 0; font-size:.82rem; text-align:center; }
 
 .ver-tabs{ display:flex; gap:.5rem; overflow-x:auto; padding-bottom:.25rem; margin-bottom:.8rem; }
@@ -350,8 +395,23 @@
 
 /* La vista del estudiante usa el mismo celular del juego (.tel-fondo,
    z-index 60); el botón de cerrar va por encima. */
+/* Barra flotante de la vista previa: versión (celular / PC) y cerrar.
+   Va abajo para no tapar la barra de título de la ventana de PC. */
+.hoja-probar-barra{
+  position:fixed; bottom:max(12px, env(safe-area-inset-bottom)); right:16px; z-index:61;
+  display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:.5rem;
+}
+.hoja-vista{
+  display:flex; border-radius:99px; overflow:hidden;
+  border:1px solid rgba(255,255,255,.3); background:rgba(15,23,42,.85);
+}
+.hoja-vista button{
+  min-height:40px; padding:.5rem .85rem; border:0; background:transparent; color:#cbd5e1;
+  font-family:var(--font-body); font-weight:700; cursor:pointer;
+}
+.hoja-vista button[aria-pressed="true"]{ background:#f59e0b; color:#111827; }
+.hoja-vista button:focus-visible{ outline:3px solid #fdba74; outline-offset:-3px; }
 .hoja-cerrar{
-  position:fixed; top:max(12px, env(safe-area-inset-top)); right:16px; z-index:61;
   min-height:40px; padding:.5rem .9rem; border-radius:99px; cursor:pointer;
   border:1px solid rgba(255,255,255,.3); background:rgba(15,23,42,.85); color:#fff;
   font-family:var(--font-body); font-weight:700;

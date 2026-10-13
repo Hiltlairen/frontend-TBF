@@ -431,33 +431,30 @@ export default function CreateActivityPage() {
         </div>
       )}
 
-      {codigosSel.length > 0 && (
+      {codigosSel.length > 0 && claseSel && (
         <div className="card">
           <div className="section-title">
             <h3>Curso y nivel</h3>
             {libroSel && (
-              <span className="badge badge-ok" title="El nivel lo define el libro elegido">
+              <span className="badge badge-ok" title="El nivel lo define el libro de la clase">
                 Nivel {libroSel.nivel} · {libroSel.nombre}
               </span>
             )}
           </div>
-          <div className="field" style={{ maxWidth: 420 }}>
-            <label>Curso <span className="req">*</span></label>
-            <input
-              value={curso}
-              onChange={(e) => { setCurso(e.target.value); limpiarSalida() }}
-              placeholder='Ej. "3° B - Mañana" o "Inglés Básico A"'
-              maxLength={80}
-            />
-            <small className="muted">
-              El curso queda registrado en la actividad y se le muestra al estudiante al entrar con el código.
-              El nivel de inglés no se elige: lo determina el libro ({libroSel?.nivel ?? '—'}).
-            </small>
-          </div>
 
-          <p className="muted" style={{ marginTop: '.7rem' }}>
-            Clase: <strong>{clases.find((c) => c.id === claseId)?.nombre ?? '—'}</strong>.
-            La sala va a pedir el código de matrícula de cada estudiante de esa clase en vez de su nombre.
+          {/* El curso NO se escribe: es la clase que le asignaron al docente. */}
+          <dl className="curso-fijo">
+            <div><dt>Curso</dt><dd>🏫 {claseSel.nombre}{claseSel.periodo ? ` · ${claseSel.periodo}` : ''}</dd></div>
+            <div><dt>Estudiantes</dt><dd>{plan?.estudiantes ?? claseSel.totalEstudiantes}</dd></div>
+            <div><dt>Variantes</dt><dd><strong>{plan?.variantes ?? '…'}</strong></dd></div>
+          </dl>
+          <p className="muted curso-fijo-nota">
+            El curso es la clase que te asignaron (no se puede cambiar aquí) y el nivel lo fija su libro.
+            Se generan <strong>{plan?.variantes ?? '…'} variantes</strong> con preguntas distintas
+            {sinIA
+              ? ' — sin IA, una por estudiante (se arman gratis con el vocabulario de la lección)'
+              : ` — con IA, hasta ${plan?.maxVariantesIA ?? 10} (cada una gasta tokens)`}.
+            Cada estudiante entra con el código de sala y su código de matrícula, y le toca una variante al azar.
           </p>
         </div>
       )}
@@ -472,27 +469,22 @@ export default function CreateActivityPage() {
 
       {listo && !resultado && (
         <>
-          <BotonIA className="btn-generar" onClick={() => generar(false)} cargando={generando}
-            textoCargando={modo === 'simple' ? 'Generando con IA' : 'Generando las actividades con IA'}>
+          <BotonIA className="btn-generar" onClick={generar} cargando={generando}
+            textoCargando={plan?.variantes > 1 ? `Generando ${plan.variantes} variantes` : 'Generando'}>
             {modo === 'simple' ? 'Generar actividad' : `Generar aventura de ${codigosSel.length} actividades`}
+            {plan?.variantes > 1 && ` (${plan.variantes} variantes)`}
           </BotonIA>
           {estimacion && (
             <p className="costo-estimado muted">
               Costo estimado: <strong>{textoEstimacion(estimacion)}</strong>
-              {!estimacion.desdeCache && estimacion.muestrasCalibracion === 0 && ' (aproximado: todavía no hay generaciones para calibrar)'}
+              {!estimacion.desdeCache && !estimacion.sinIA && estimacion.muestrasCalibracion === 0 && ' (aproximado: todavía no hay generaciones para calibrar)'}
             </p>
           )}
         </>
       )}
 
       {resultado && (
-        <PanelVersiones
-          versiones={versiones} seleccion={seleccion}
-          onSeleccionar={(i) => { setSeleccion(i); setSala(null) }}
-          estimacion={estimacion} limiteAlcanzado={limiteVersiones} maxVersiones={maxVersiones}
-          generando={generando} onOtraVersion={() => generar(true)}
-          lanzada={Boolean(sala)}
-        >
+        <PanelVariantes resultado={resultado}>
           {!sala && (
             <div className="lanzar-config">
               <div className="field" style={{ maxWidth: 260 }}>
@@ -508,16 +500,16 @@ export default function CreateActivityPage() {
                     disabled={limiteEstudiantes >= 30}>+</button>
                 </div>
                 <small className="muted">
-                  La sala se cierra sola al entrar {limiteEstudiantes} estudiante{limiteEstudiantes === 1 ? '' : 's'} (máx. 30).
+                  Por defecto, los estudiantes de {claseSel?.nombre ?? 'la clase'}. La sala se cierra sola al entrar {limiteEstudiantes}.
                 </small>
               </div>
               <button className="btn-generar" onClick={lanzar} disabled={generando}>
-                Lanzar la versión {resultado.version} a los estudiantes →
+                Lanzar a {claseSel?.nombre ?? 'la clase'} →
               </button>
             </div>
           )}
           {sala && <RoomCode sala={sala} />}
-        </PanelVersiones>
+        </PanelVariantes>
       )}
     </div>
   )
