@@ -2,10 +2,15 @@ import { useState } from 'react'
 import { api } from '../../lib/api.js'
 import { useCerrarConEscape } from '../../lib/a11y.js'
 
+// `lessons`: [{ id, numero, titulo, categorias: [...] }]. La categoría no
+// se escribe: se elige entre las que ya tiene la lección (el servidor
+// también lo exige, ver library.routes.js).
 export default function AddVocabularyModal({ lessons, defaultLessonId, onClose, onSaved }) {
   useCerrarConEscape(onClose)
   const [lessonId,   setLessonId]   = useState(defaultLessonId ?? lessons[0]?.id ?? '')
-  const [categoria,  setCategoria]  = useState('')
+  const categoriasDe = (id) => lessons.find((l) => String(l.id) === String(id))?.categorias ?? []
+  const [categoria,  setCategoria]  = useState(() => categoriasDe(defaultLessonId ?? lessons[0]?.id)[0] ?? '')
+  const categorias = categoriasDe(lessonId)
   const [ingles,     setIngles]     = useState('')
   const [espanol,    setEspanol]    = useState('')
   const [saving,     setSaving]     = useState(false)
@@ -39,7 +44,11 @@ export default function AddVocabularyModal({ lessons, defaultLessonId, onClose, 
         <form onSubmit={handleSubmit}>
           <div className="field">
             <label>Lección</label>
-            <select value={lessonId} onChange={(e) => setLessonId(e.target.value)}>
+            <select value={lessonId} onChange={(e) => {
+              setLessonId(e.target.value)
+              // Al cambiar de lección, la categoría pasa a la primera de esa lección.
+              setCategoria(categoriasDe(e.target.value)[0] ?? '')
+            }}>
               {lessons.map((l) => (
                 <option key={l.id} value={l.id}>Lección {l.numero} — {l.titulo}</option>
               ))}
@@ -47,8 +56,13 @@ export default function AddVocabularyModal({ lessons, defaultLessonId, onClose, 
           </div>
           <div className="field">
             <label>Categoría</label>
-            <input placeholder="Ej. Animales, Ropa, Verbos…" value={categoria}
-              onChange={(e) => setCategoria(e.target.value)} />
+            {categorias.length ? (
+              <select value={categoria} onChange={(e) => setCategoria(e.target.value)}>
+                {categorias.map((c) => <option key={c} value={c}>{c}</option>)}
+              </select>
+            ) : (
+              <p className="muted" style={{ margin: 0 }}>Esta lección todavía no tiene categorías.</p>
+            )}
           </div>
           <div className="grid-2">
             <div className="field">
@@ -63,7 +77,7 @@ export default function AddVocabularyModal({ lessons, defaultLessonId, onClose, 
           {error && <p className="badge badge-error">{error}</p>}
           <div className="generation-slot-actions">
             <button type="button" className="btn btn-outline" onClick={onClose}>Cancelar</button>
-            <button type="submit"  className="btn btn-primary" disabled={saving}>
+            <button type="submit"  className="btn btn-primary" disabled={saving || !categoria}>
               {saving ? 'Guardando…' : 'Guardar'}
             </button>
           </div>

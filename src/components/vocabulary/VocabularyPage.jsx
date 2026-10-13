@@ -165,7 +165,10 @@ export default function VocabularyPage() {
 
       {agregarEn && (
         <AddVocabularyModal
-          lessons={(hojas[agregarEn.bookId] ?? []).map((l) => ({ id: l.id, numero: l.numero, titulo: l.titulo }))}
+          lessons={(hojas[agregarEn.bookId] ?? []).map((l) => ({
+            id: l.id, numero: l.numero, titulo: l.titulo,
+            categorias: [...new Set(l.vocabulario.map((v) => v.categoria))].sort((a, b) => a.localeCompare(b, 'es')),
+          }))}
           defaultLessonId={agregarEn.lessonId}
           onClose={() => setAgregarEn(null)}
           onSaved={(enCuraduria) => {
