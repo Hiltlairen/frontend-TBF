@@ -29,12 +29,15 @@ import RoutePreview from './RoutePreview.jsx'
 import RoomCode from './RoomCode.jsx'
 import PanelVariantes from './PanelVariantes.jsx'
 import AvisoSinIA from './AvisoSinIA.jsx'
+import ConfigCancion from './ConfigCancion.jsx'
 import BotonIA from '../ui/BotonIA.jsx'
 import { textoEstimacion } from '../../lib/tokens.js'
 import './CreateActivity.css'
 import './RoomCode.css'
 
 const MINIMO_AVENTURA = 6
+const CANCION = '10-canciones'
+const REDACCION = '05-redaccion'
 
 // El asistente: un paso a la vez, con la barra de progreso arriba.
 const PASOS = [
@@ -76,6 +79,10 @@ export default function CreateActivityPage() {
   const [catalogo, setCatalogo] = useState([])
   const [franjas, setFranjas] = useState([])
   const [cantidades, setCantidades] = useState({}) // { codigo: n }
+  // Configuración propia de algunas actividades: { '05-redaccion': { escenario, tipoTexto }, '10-canciones': { cancion } }
+  const [extras, setExtras] = useState({})
+  const [tiposTexto, setTiposTexto] = useState({})
+  const [escenarios, setEscenarios] = useState([])
   const [limiteEstudiantes, setLimiteEstudiantes] = useState(30)
   const [clases, setClases] = useState([])
   const [clasesCargando, setClasesCargando] = useState(true)
@@ -102,8 +109,11 @@ export default function CreateActivityPage() {
     // El servidor ya manda el catálogo ordenado de menor a mayor dificultad,
     // y agrupado en franjas (Básico → Experto) — ver GET /catalogo.
     api.actividades.catalogo()
-      .then(({ catalogo, franjas, ia }) => { setCatalogo(catalogo); setFranjas(franjas ?? []); if (ia) setIa(ia) })
+      .then(({ catalogo, franjas, ia, tiposTexto }) => {
+        setCatalogo(catalogo); setFranjas(franjas ?? []); setTiposTexto(tiposTexto ?? {}); if (ia) setIa(ia)
+      })
       .catch((e) => setError(e.message))
+    api.actividades.escenarios().then(({ escenarios }) => setEscenarios(escenarios ?? [])).catch(() => {})
     // Clases asignadas a este docente (admin las ve todas). Ahora es el
     // PRIMER paso del flujo: de acá sale el libro automáticamente.
     api.clases.mias()
@@ -161,7 +171,7 @@ export default function CreateActivityPage() {
 
   // Después de lanzar: otra actividad para el mismo curso y lecciones.
   function nuevaActividad() {
-    setCodigosSel([]); setCantidades({}); limpiarSalida(); setError(null)
+    setCodigosSel([]); setCantidades({}); setExtras({}); limpiarSalida(); setError(null)
     setPaso(3)
   }
 
@@ -201,22 +211,41 @@ export default function CreateActivityPage() {
   }
 
   const claseSel = clases.find((c) => c.id === claseId) ?? null
-  const listo = Boolean(claseSel) && leccionesSel.length > 0 && (
+  // La canción necesita que el docente la elija (y su audio) antes de generar.
+  const faltaCancion = codigosSel.includes(CANCION) && !extras[CANCION]?.cancion
+  const listo = Boolean(claseSel) && leccionesSel.length > 0 && !faltaCancion && (
     modo === 'simple' ? codigosSel.length === 1 : codigosSel.length >= MINIMO_AVENTURA
   )
+
+  function fijarExtra(codigo, cambios) {
+    setExtras((prev) => ({ ...prev, [codigo]: { ...prev[codigo], ...cambios } }))
+    limpiarSalida()
+  }
+  // Lo que viaja en config: en simple, el ambiente y el tipo de texto de la
+  // redacción; en los dos modos, la canción (en aventura, la redacción se
+  // adapta sola al ambiente donde cae).
+  function extrasDe(codigo) {
+    const x = extras[codigo] ?? {}
+    if (codigo === CANCION) return x.cancion ? { cancion: x.cancion } : {}
+    if (codigo === REDACCION && modo === 'simple') {
+      return { ...(x.escenario ? { escenario: x.escenario } : {}), ...(x.tipoTexto ? { tipoTexto: x.tipoTexto } : {}) }
+    }
+    return {}
+  }
 
   // Lo mismo que se manda para generar, y para estimar cuánto costaría.
   function cuerpoBase() {
     const base = { lecciones: leccionesSel.map((l) => l.id), claseId }
     if (modo === 'simple') {
       const codigo = codigosSel[0]
-      return { ...base, codigo, cantidad: cantidadDe(codigo) }
+      return { ...base, codigo, cantidad: cantidadDe(codigo), config: extrasDe(codigo) }
     }
-    // Un objeto de config por actividad, solo con la cantidad elegida
+    // Un objeto de config por actividad: la cantidad elegida (y la canción)
     const configs = {}
     for (const c of codigosSel) {
       const n = cantidadDe(c)
-      if (n != null) configs[c] = { cantidad: n }
+      const cfg = { ...(n != null ? { cantidad: n } : {}), ...extrasDe(c) }
+      if (Object.keys(cfg).length) configs[c] = cfg
     }
     return { ...base, actividades: codigosSel, configs }
   }
@@ -239,7 +268,7 @@ export default function CreateActivityPage() {
     }, 350)
     return () => { vigente = false; clearTimeout(t) }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [listo, modo, codigosSel, leccionesSel, cantidades, claseId, resultado])
+  }, [listo, modo, codigosSel, leccionesSel, cantidades, claseId, resultado, extras])
 
   async function generar() {
     setGenerando(true); setError(null)
@@ -307,6 +336,8 @@ export default function CreateActivityPage() {
     limpiarSalida()
   }
 
+  const [cancionElegida, setCancionElegida] = useState(null)   // "Título — Artista", para los resúmenes
+
   // ── Asistente por pasos ─────────────────────────────────
   const pasoListo = {
     1: Boolean(claseSel && libroId),
@@ -321,7 +352,8 @@ export default function CreateActivityPage() {
   const resumenPaso = {
     1: claseSel && `${claseSel.nombre}${libroSel ? ` · ${libroSel.nombre}` : ''}`,
     2: leccionesSel.length > 0 && leccionesSel.map((l) => `L${l.numero}`).join(', '),
-    3: codigosSel.length > 0 && `${modo === 'simple' ? 'Simple' : 'Aventura'} · ${codigosSel.map((c) => catPorCodigo[c]?.titulo ?? c).join(', ')}`,
+    3: codigosSel.length > 0 && `${modo === 'simple' ? 'Simple' : 'Aventura'} · ${codigosSel.map((c) => catPorCodigo[c]?.titulo ?? c).join(', ')}`
+      + (cancionElegida ? ` · 🎤 ${cancionElegida}` : ''),
     4: resultado && `${resultado.registro.variantes?.length ?? 1} variante(s) generadas`,
   }
   const propsPaso = (n) => ({
@@ -331,6 +363,8 @@ export default function CreateActivityPage() {
     error: paso === n ? error : null,
   })
   const actividadesElegidas = codigosSel.map((c) => catPorCodigo[c]).filter(Boolean)
+  const nombreEscenario = (id) => escenarios.find((e) => e.id === id)?.nombre ?? id
+  const redaccion = catPorCodigo[REDACCION]
 
   return (
     <div className="create-activity-page">
@@ -468,7 +502,12 @@ export default function CreateActivityPage() {
                           <span title="Escenario">📍 {a.escenarioResuelto?.nombre ?? a.escenario}</span>
                           <span title="Interacción">{ICONO_INTERACCION[a.interaccion] ?? a.interaccion}</span>
                         </div>
-                        {a.requiereRevision && <small className="act-revision">requiere corrección del docente</small>}
+                        {a.requiereRevision && (
+                          <small className="act-revision">
+                            {a.codigo === REDACCION ? 'la evalúa la IA · tú confirmas la nota' : 'requiere corrección del docente'}
+                          </small>
+                        )}
+                        {a.requiereCancion && <small className="act-con-vocab">🎵 eliges la canción · sin IA</small>}
                         {bloqueada && <small className="act-sin-ia">🔒 necesita IA</small>}
                         {sinIA && !a.requiereIA && <small className="act-con-vocab">✓ funciona sin IA</small>}
                       </button>
@@ -505,6 +544,13 @@ export default function CreateActivityPage() {
             </div>
           ))}
 
+          {modo === 'aventura' && codigosSel.includes(REDACCION) && (
+            <p className="muted" style={{ marginTop: '.7rem' }}>
+              ✍️ <strong>{redaccion?.titulo ?? 'La redacción'}</strong> se adapta sola al ambiente donde caiga en la aventura
+              (escribirle a alguien en la cafetería, contar lo que leyó en la biblioteca…).
+            </p>
+          )}
+
           {modo === 'aventura' && codigosSel.length > 0 && codigosSel.length < MINIMO_AVENTURA && (
             <p className="badge badge-warn" style={{ display: 'block', marginTop: '.7rem' }}>
               Faltan {MINIMO_AVENTURA - codigosSel.length} para poder armar la ruta.
@@ -512,9 +558,50 @@ export default function CreateActivityPage() {
           )}
           </div>
 
+          {/* Redacción suelta: el docente elige la situación y el tipo de texto */}
+          {modo === 'simple' && codigosSel[0] === REDACCION && redaccion && (
+            <div className="card config-redaccion">
+              <div className="section-title"><h3>✍️ ¿En qué situación escribe?</h3></div>
+              <p className="muted">La consigna se arma para ese ambiente. La IA evalúa solo dos cosas: que el texto encaje en la situación y que esté bien escrito; tú confirmas la nota.</p>
+              <div className="config-redaccion-campos">
+                <div className="field">
+                  <label htmlFor="red-escenario">Ambiente</label>
+                  <select id="red-escenario" value={extras[REDACCION]?.escenario ?? redaccion.escenario}
+                    onChange={(e) => fijarExtra(REDACCION, { escenario: e.target.value })}>
+                    {[redaccion.escenario, ...(redaccion.escenariosAlt ?? [])].map((id) => (
+                      <option key={id} value={id}>{nombreEscenario(id)}</option>
+                    ))}
+                  </select>
+                  <small className="muted">{escenarios.find((e) => e.id === (extras[REDACCION]?.escenario ?? redaccion.escenario))?.descripcion}</small>
+                </div>
+                <div className="field">
+                  <label htmlFor="red-tipo">Tipo de texto</label>
+                  <select id="red-tipo" value={extras[REDACCION]?.tipoTexto ?? 'auto'}
+                    onChange={(e) => fijarExtra(REDACCION, { tipoTexto: e.target.value })}>
+                    {Object.entries(tiposTexto).map(([id, etiqueta]) => <option key={id} value={id}>{etiqueta}</option>)}
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {codigosSel.includes(CANCION) && (
+            <ConfigCancion
+              valor={extras[CANCION]?.cancion}
+              lecciones={leccionesSel.map((l) => l.id)}
+              nivel={libroSel?.nivel}
+              onChange={(cancion, nombre) => {
+                setCancionElegida(nombre ?? null)
+                if (JSON.stringify(cancion ?? null) === JSON.stringify(extras[CANCION]?.cancion ?? null)) return
+                fijarExtra(CANCION, { cancion })
+              }}
+            />
+          )}
+
           {modo === 'aventura' && vistaPrevia && <RoutePreview datos={vistaPrevia} />}
         <Continuar listo={pasoListo[3]} onClick={() => ir(4)}
-          falta={modo === 'simple' ? 'Elige una actividad' : `Elige al menos ${MINIMO_AVENTURA} actividades`} />
+          falta={faltaCancion ? 'Elige la canción y el enlace del audio'
+            : modo === 'simple' ? 'Elige una actividad' : `Elige al menos ${MINIMO_AVENTURA} actividades`} />
       </Paso>
 
       {/* ══ Paso 4 · Resumen y generar ══ (al terminar, baja solo al 5) */}
@@ -542,7 +629,10 @@ export default function CreateActivityPage() {
               <li key={a.codigo}>
                 <strong>{a.titulo}</strong>
                 {a.preguntas && <small className="muted"> · {cantidadDe(a.codigo)} {a.preguntas.unidad}</small>}
-                {a.requiereRevision && <small className="act-revision"> · la corriges tú</small>}
+                {a.codigo === REDACCION
+                  ? <small className="act-revision"> · la evalúa la IA, tú confirmas{modo === 'simple' ? ` · ${nombreEscenario(extras[REDACCION]?.escenario ?? a.escenario)}` : ''}</small>
+                  : a.requiereRevision && <small className="act-revision"> · la corriges tú</small>}
+                {a.codigo === CANCION && cancionElegida && <small className="muted"> · 🎤 {cancionElegida}</small>}
               </li>
             ))}
           </ul>
@@ -564,7 +654,7 @@ export default function CreateActivityPage() {
             {estimacion && (
               <p className="costo-estimado muted">
                 Costo estimado: <strong>{textoEstimacion(estimacion)}</strong>
-                {!estimacion.desdeCache && !estimacion.sinIA && estimacion.muestrasCalibracion === 0 && ' (aproximado: todavía no hay generaciones para calibrar)'}
+                {!estimacion.desdeCache && !estimacion.sinIA && !estimacion.local && estimacion.muestrasCalibracion === 0 && ' (aproximado: todavía no hay generaciones para calibrar)'}
               </p>
             )}
           </div>

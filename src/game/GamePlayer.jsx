@@ -92,6 +92,7 @@ export default function GamePlayer() {
         pendiente: r.requiereRevision,
         resumen: [],
         repaso: r.repaso,
+        evaluacionIA: r.evaluacionIA,
         iaDisponible: r.iaDisponible,
       })
       setEstado('fin')

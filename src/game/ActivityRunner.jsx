@@ -38,6 +38,7 @@ import { useMemo, useState, useEffect, useRef } from 'react'
 import { buildWordSearchGrid } from '../lib/wordsearch.js'
 import { construirLaberinto } from '../lib/wordmaze.js'
 import { generarPiezas, GLIFO_FORMA } from '../lib/sentencePuzzle.js'
+import ReproductorCancion, { versoActual } from '../components/ui/ReproductorCancion.jsx'
 import npcImg from './assets/objects/npc.png'
 import Sprite from './Sprite.jsx'
 import './ActivityRunner.css'
@@ -654,7 +655,7 @@ function Sopa({ palabras, filas, columnas, direcciones, onFinish, onSalir }) {
 // ════════════════════════════════════════════════════════════
 //  PRIMITIVA 6 — Producción libre (la corrige el docente)
 // ════════════════════════════════════════════════════════════
-function Libre({ consigna, minimo = 40, criterios = [], onFinish, onSalir }) {
+function Libre({ consigna, contexto, minimo = 40, criterios = [], onFinish, onSalir }) {
   const [texto, setTexto] = useState('')
   const palabras = texto.trim() ? texto.trim().split(/\s+/).length : 0
   const suficiente = palabras >= minimo
@@ -675,6 +676,7 @@ function Libre({ consigna, minimo = 40, criterios = [], onFinish, onSalir }) {
       <Encabezado etiqueta="Redacción" icono="✎" titulo="Escribe tu respuesta" />
 
       <div className="ar-panel">
+        {contexto && <p className="ar-panel-fila ar-contexto">📍 {contexto}</p>}
         <p className="ar-panel-fila activa">{consigna}</p>
       </div>
 
@@ -686,7 +688,106 @@ function Libre({ consigna, minimo = 40, criterios = [], onFinish, onSalir }) {
           {criterios.map((c) => <li key={c.id}>{c.nombre} · {c.peso}%</li>)}
         </ul>
       )}
-      <p className="ar-aviso">Tu profesor corregirá esta respuesta a mano.</p>
+      <p className="ar-aviso">Al entregar, una IA revisa dos cosas: que tu texto encaje en la situación y que esté bien escrito. Tu profesor confirma la nota.</p>
+    </Marco>
+  )
+}
+
+// ════════════════════════════════════════════════════════════
+//  PRIMITIVA 13 — Letra con huecos (canción, actividad 10)
+// ════════════════════════════════════════════════════════════
+// Suena la canción (YouTube / Spotify / URL) y el estudiante escribe
+// las palabras que faltan. Si la letra es sincronizada, se resalta el
+// verso que suena y se puede saltar a un verso tocándolo. "Comprobar"
+// compara con la letra original (sin mayúsculas, tildes ni signos,
+// igual que el servidor) y muestra la nota y los errores.
+const normalizarPalabra = (x) => String(x ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+  .replace(/[’‘`´]/g, "'").toLowerCase().replace(/[^a-z0-9']/g, '')
+
+function LetraConHuecos({ cancion, audio, lineas, huecos, onFinish, onSalir }) {
+  const [escritos, setEscritos] = useState({})
+  const [revisado, setRevisado] = useState(false)
+  const [t, setT] = useState(0)
+  const [desfase, setDesfase] = useState(0)
+  const reproductor = useRef(null)
+  const refsVerso = useRef({})
+  const sincronizada = lineas.some((l) => l.t != null)
+  const actual = sincronizada ? versoActual(lineas, t, desfase) : -1
+
+  // El verso que suena queda a la vista (sin pelear con el que escribe).
+  useEffect(() => {
+    if (actual < 0 || revisado) return
+    const el = refsVerso.current[actual]
+    if (el && !el.contains(document.activeElement)) el.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+  }, [actual, revisado])
+
+  const llenos = huecos.filter((h) => (escritos[h.id] ?? '').trim()).length
+  const correcto = (h) => normalizarPalabra(escritos[h.id]) === normalizarPalabra(h.respuesta)
+  const aciertos = huecos.filter(correcto).length
+  const puntaje = pct(aciertos, huecos.length)
+  const porId = Object.fromEntries(huecos.map((h) => [h.id, h]))
+
+  return (
+    <Marco
+      top={<BarraSuperior hechos={revisado ? aciertos : llenos} total={huecos.length} onSalir={onSalir} />}
+      pie={
+        <Pie secundario={<p className="ar-contador">{llenos} / {huecos.length} palabras</p>}>
+          <BotonCTA disabled={revisado || llenos === 0} onClick={() => { setRevisado(true); reproductor.current?.pause() }}>Comprobar</BotonCTA>
+        </Pie>
+      }
+      hoja={revisado && (
+        <HojaFeedback
+          estado={puntaje >= 60 ? 'ok' : 'mal'}
+          titulo={`${aciertos} de ${huecos.length} correctas · ${puntaje}%`}
+          detalle={aciertos < huecos.length ? 'En la letra quedaron marcadas en rojo, con la palabra original al lado.' : '¡Completaste toda la letra!'}
+          onContinuar={() => onFinish(puntaje, { huecos: escritos })}
+        />
+      )}
+    >
+      <Encabezado etiqueta="Canción" icono="🎤" titulo="Escucha y completa la letra" />
+      <ReproductorCancion ref={reproductor} audio={audio} onTiempo={setT} compacto />
+      {sincronizada && (
+        <div className="ar-desfase">
+          <small>¿La letra va adelantada o atrasada?</small>
+          <button type="button" onClick={() => setDesfase((d) => d - 0.5)} aria-label="Retrasar la letra medio segundo">−0,5 s</button>
+          <span>{desfase > 0 ? '+' : ''}{desfase.toFixed(1)} s</span>
+          <button type="button" onClick={() => setDesfase((d) => d + 0.5)} aria-label="Adelantar la letra medio segundo">+0,5 s</button>
+        </div>
+      )}
+
+      <ol className="ar-letra" aria-label={`Letra de ${cancion?.titulo ?? 'la canción'}`}>
+        {lineas.map((l, i) => (
+          <li key={l.id} ref={(el) => { refsVerso.current[i] = el }} className={i === actual ? 'sonando' : ''}>
+            {l.t != null && (
+              <button type="button" className="ar-letra-ir" onClick={() => reproductor.current?.irA(Math.max(0, l.t - desfase - 0.3))}
+                aria-label={`Escuchar desde el verso ${i + 1}`} title="Escuchar desde aquí">▶</button>
+            )}
+            <span className="ar-letra-texto">
+              {l.partes.map((p, k) => {
+                if (!p.hueco) return <span key={k}>{p.texto}</span>
+                const h = porId[p.hueco]
+                const ok = revisado && correcto(h)
+                return (
+                  <span key={k} className="ar-hueco-caja">
+                    <input
+                      className={`ar-hueco ${revisado ? (ok ? 'ok' : 'mal') : ''}`}
+                      value={escritos[p.hueco] ?? ''}
+                      onChange={(e) => setEscritos((x) => ({ ...x, [p.hueco]: e.target.value }))}
+                      readOnly={revisado}
+                      size={Math.max(3, (h?.respuesta?.length ?? 4) + 1)}
+                      maxLength={40}
+                      autoCapitalize="off" autoCorrect="off" spellCheck={false}
+                      aria-label={`Palabra que falta en el verso ${i + 1}`}
+                    />
+                    {revisado && !ok && <small className="ar-hueco-correcta">{h?.respuesta}</small>}
+                  </span>
+                )
+              })}
+            </span>
+          </li>
+        ))}
+      </ol>
+      {!sincronizada && <p className="ar-aviso">Esta letra no trae tiempos: sigue la canción con el oído.</p>}
     </Marco>
   )
 }
@@ -1405,7 +1506,7 @@ function normalizar(codigo, d) {
 
     case '05-redaccion':
       return { tipo: 'libre', props: {
-        consigna: d.consigna, minimo: d.minimo_palabras ?? 40, criterios: d.criterios ?? [],
+        consigna: d.consigna, contexto: d.contexto, minimo: d.minimo_palabras ?? 40, criterios: d.criterios ?? [],
       } }
 
     case '06-diccionario':
@@ -1444,6 +1545,13 @@ function normalizar(codigo, d) {
       } }
 
     case '10-canciones':
+      if (Array.isArray(d.huecos)) {
+        return { tipo: 'cancion', props: {
+          cabecera: { titulo: d.actividad?.titulo ?? d.cancion?.titulo },
+          cancion: d.cancion, audio: d.audio, lineas: d.lineas, huecos: d.huecos,
+        } }
+      }
+      // Formato anterior (letra inventada con opciones), de actividades ya guardadas
       return { tipo: 'quiz', props: {
         cabecera: d.cancion,
         formato: 'panel', etiqueta: 'Canción', icono: '🎤',
@@ -1597,6 +1705,7 @@ export default function ActivityRunner({ codigo, contenido, onFinish, onSalir })
       {tipo === 'armar-escenario' && <ArmarEscenario {...comun} />}
       {tipo === 'impostor'        && <Impostor {...comun} />}
       {tipo === 'basquet'         && <Basquet {...comun} />}
+      {tipo === 'cancion'         && <LetraConHuecos {...comun} />}
     </div>
   )
 }

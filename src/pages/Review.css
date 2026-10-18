@@ -85,3 +85,9 @@
   .rev-layout{ grid-template-columns:1fr; }
   .rev-detalle{ position:static; }
 }
+
+.rev-eval-ia{ border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:var(--radius-sm); padding:.6rem .8rem; margin:.6rem 0; }
+.rev-eval-ia p{ margin:0 0 .3rem; }
+.rev-eval-ia ul{ margin:.2rem 0 .4rem; padding-left:1.1rem; }
+.rev-eval-errores del{ color:var(--bad-soft-txt); }
+.rev-eval-errores ins{ color:var(--ok-soft-txt); text-decoration:none; font-weight:700; }

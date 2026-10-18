@@ -47,6 +47,7 @@ export default function ResumenFinal({ resumen, partidaId, token, onSalir }) {
   const tramo = pendiente ? 'pendiente' : nota >= 80 ? 'alto' : nota >= 50 ? 'medio' : 'bajo'
   const etapas = resumen?.resumen?.length ?? 0
   const repaso = resumen?.repaso ?? null
+  const evaluacion = resumen?.evaluacionIA ?? null
   const errores = repaso?.errores ?? []
   const ronda = repaso?.ronda ?? []
   const mostrada = useCuentaArriba(pendiente ? 0 : nota)
@@ -136,6 +137,8 @@ export default function ResumenFinal({ resumen, partidaId, token, onSalir }) {
           </>
         )}
 
+        {evaluacion && <EvaluacionRedaccion ev={evaluacion} />}
+
         {repaso && (
           <section className="rep" aria-label={t('game.review_title')}>
             {repaso.dominadas.length > 0 && (
@@ -208,5 +211,31 @@ export default function ResumenFinal({ resumen, partidaId, token, onSalir }) {
         </button>
       </div>
     </div>
+  )
+}
+
+// ── Redacción (05): lo que revisó la IA ────────────────────
+// Nota PROVISIONAL (la confirma el docente), los dos criterios con su
+// comentario y los errores con su corrección.
+function EvaluacionRedaccion({ ev }) {
+  return (
+    <section className="rep eval-redaccion" aria-label="Revisión de tu texto">
+      <h3 className="rep-titulo">✍️ Revisión de tu texto · {ev.total}/100 <small>(provisional: tu profesor la confirma)</small></h3>
+      <ul className="eval-criterios">
+        <li><strong>Contexto · {ev.contexto?.puntaje ?? 0}</strong>{ev.contexto?.comentario && <p>{ev.contexto.comentario}</p>}</li>
+        <li><strong>Escritura correcta · {ev.escritura?.puntaje ?? 0}</strong>{ev.escritura?.comentario && <p>{ev.escritura.comentario}</p>}</li>
+      </ul>
+      {ev.errores?.length > 0 && (
+        <ul className="eval-errores">
+          {ev.errores.map((e, i) => (
+            <li key={i}>
+              <del>{e.original}</del> → <ins>{e.correccion}</ins>
+              {e.explicacion && <small>{e.explicacion}</small>}
+            </li>
+          ))}
+        </ul>
+      )}
+      {ev.resumen && <p className="muted">{ev.resumen}</p>}
+    </section>
   )
 }

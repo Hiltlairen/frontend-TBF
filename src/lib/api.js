@@ -140,6 +140,13 @@ export const api = {
     limpiarCache: () => del('/api/activities/meta/cache'),
   },
 
+  // Actividad 10: buscar la canción, traer su letra y ver los huecos
+  canciones: {
+    buscar:      (titulo, artista = '') => get(`/api/canciones/buscar?${new URLSearchParams({ titulo, artista })}`),
+    obtener:     (fuente, id) => get(`/api/canciones/${fuente}/${encodeURIComponent(id)}`),
+    vistaPrevia: (cancion, lecciones) => post('/api/canciones/vista-previa', { cancion, lecciones }),
+  },
+
   salas: {
     crear:  (cuerpo) => post('/api/rooms', cuerpo),
     listar: () => get('/api/rooms'),

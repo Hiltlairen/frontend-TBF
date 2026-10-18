@@ -1228,3 +1228,36 @@
   .ar-personaje{ animation:none; }
   .ar-hoja{ animation:none; }
 }
+
+/* ════════ Canción: letra con huecos (10) ════════ */
+.ar-cuerpo .reproductor-cancion{ display:flex; flex-direction:column; gap:.45rem; }
+.ar-desfase{ display:flex; align-items:center; gap:.4rem; flex-wrap:wrap; font-size:.78rem; color:var(--g-muted); }
+.ar-desfase button{
+  border:2px solid var(--g-line); background:var(--g-surface); color:var(--g-ink);
+  border-radius:var(--g-r-sm); padding:.15rem .5rem; font-weight:700; cursor:pointer;
+}
+.ar-letra{ list-style:none; margin:0; padding:0; display:flex; flex-direction:column; gap:.3rem; }
+.ar-letra li{
+  display:flex; align-items:baseline; gap:.45rem; padding:.4rem .55rem; border-radius:var(--g-r-sm);
+  border-left:3px solid transparent; line-height:2.1; color:var(--g-ink);
+  font-family:var(--font-lyric, serif); font-size:1.02rem;
+  transition:background var(--g-base) ease, border-color var(--g-base) ease;
+}
+.ar-letra li.sonando{ background:var(--g-sel-bg); border-left-color:var(--g-brand); }
+.ar-letra-ir{
+  flex:none; border:0; background:none; color:var(--g-muted); cursor:pointer; font-size:.7rem;
+  padding:.1rem .25rem; border-radius:6px;
+}
+.ar-letra-ir:hover, .ar-letra-ir:focus-visible{ color:var(--g-brand); background:var(--g-sel-bg); }
+.ar-letra-texto{ min-width:0; overflow-wrap:anywhere; }
+.ar-hueco-caja{ display:inline-flex; flex-direction:column; align-items:center; vertical-align:baseline; }
+.ar-hueco{
+  font:inherit; font-family:var(--font-body); font-size:.95rem; text-align:center; max-width:12rem;
+  border:0; border-bottom:2px solid var(--g-brand); background:var(--g-sel-bg); color:var(--g-ink);
+  border-radius:6px 6px 0 0; padding:0 .3rem; margin:0 .1rem; line-height:1.7;
+}
+.ar-hueco:focus{ outline:0; box-shadow:0 0 0 3px rgba(180,83,9,.2); }
+.ar-hueco.ok{ background:var(--g-ok-bg); border-bottom-color:var(--g-ok); color:var(--g-ok); }
+.ar-hueco.mal{ background:var(--g-bad-bg); border-bottom-color:var(--g-bad); color:var(--g-bad); text-decoration:line-through; }
+.ar-hueco-correcta{ font-family:var(--font-body); font-size:.72rem; font-weight:700; color:var(--g-ok); line-height:1.1; }
+.ar-contexto{ font-size:.85rem; color:var(--g-muted); }

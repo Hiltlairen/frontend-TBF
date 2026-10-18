@@ -484,3 +484,13 @@
   .escena-destino,
   .tel-barra.llamada .tel-avatar{ animation:none !important; }
 }
+
+/* ── Redacción: revisión de la IA ── */
+.eval-redaccion .rep-titulo{ margin:.4rem 0 0; font-size:1rem; text-align:center; }
+.eval-redaccion .rep-titulo small{ display:block; font-size:.72rem; font-weight:500; opacity:.75; }
+.eval-criterios, .eval-errores{ list-style:none; padding:0; margin:0; width:100%; display:flex; flex-direction:column; gap:.45rem; text-align:left; }
+.eval-criterios li, .eval-errores li{ background:rgba(255,255,255,.05); border-radius:12px; padding:.6rem .75rem; }
+.eval-criterios p{ margin:.2rem 0 0; font-size:.85rem; opacity:.9; }
+.eval-errores del{ color:#fca5a5; }
+.eval-errores ins{ color:#86efac; text-decoration:none; font-weight:700; }
+.eval-errores small{ display:block; font-size:.78rem; opacity:.8; margin-top:.15rem; }

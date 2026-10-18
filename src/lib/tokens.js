@@ -25,6 +25,7 @@ export function textoEstimacion(est) {
   const v = est.variantes ? `${nVariantes(est.variantes)} · ` : ''
   if (est.desdeCache) return `${v}ya están en caché: 0 tokens`
   if (est.sinIA) return `${v}sin IA: 0 tokens (se arman con el vocabulario de la lección)`
+  if (est.local) return `${v}0 tokens (la letra con huecos se arma sin IA)`
   const usd = fmtUSD(est.costoUSD)
   return `${v}≈ ${fmtTokens(est.total)} tokens${usd ? ` · ≈ ${usd}` : ''}`
 }

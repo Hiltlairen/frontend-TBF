@@ -52,7 +52,11 @@ export default function ReviewQueue() {
 
   function abrir(item) {
     setSeleccionado(item); setDetalle(null); setComentario(''); setPuntaje(''); setError(null)
-    api.curaduria.item(item.id).then(setDetalle).catch((e) => setError(e.message))
+    api.curaduria.item(item.id).then((d) => {
+      setDetalle(d)
+      // Redacción: la nota de la IA ya viene puesta; el docente la confirma o la cambia.
+      if (d?.contenido?.puntaje_provisional && d.contenido.detalle?.evaluacion_ia) setPuntaje(String(d.contenido.puntaje))
+    }).catch((e) => setError(e.message))
   }
 
   async function decidir(decision) {
@@ -150,10 +154,11 @@ export default function ReviewQueue() {
                   {seleccionado.tipo === 'entrega' && (
                     <>
                       <p><strong>Estudiante:</strong> {detalle.contenido.estudiante}</p>
-                      <p><strong>Puntaje automático:</strong> {detalle.contenido.puntaje}</p>
+                      <p><strong>{detalle.contenido.detalle?.evaluacion_ia ? 'Nota propuesta por la IA' : 'Puntaje automático'}:</strong> {detalle.contenido.puntaje}</p>
                       {detalle.contenido.detalle?.texto && (
                         <blockquote className="rev-texto">{detalle.contenido.detalle.texto}</blockquote>
                       )}
+                      {detalle.contenido.detalle?.evaluacion_ia && <EvaluacionIA ev={detalle.contenido.detalle.evaluacion_ia} />}
                     </>
                   )}
 
@@ -207,6 +212,27 @@ export default function ReviewQueue() {
           )}
         </div>
       </div>
+    </div>
+  )
+}
+
+// Lo que evaluó la IA en una redacción: solo contexto y escritura correcta.
+function EvaluacionIA({ ev }) {
+  return (
+    <div className="rev-eval-ia">
+      <p><strong>Revisión de la IA</strong> <small className="muted">(contexto 50% · escritura 50%)</small></p>
+      <ul>
+        <li><strong>Contexto: {ev.contexto?.puntaje}</strong> — {ev.contexto?.comentario}</li>
+        <li><strong>Escritura correcta: {ev.escritura?.puntaje}</strong> — {ev.escritura?.comentario}</li>
+      </ul>
+      {ev.errores?.length > 0 && (
+        <ul className="rev-eval-errores">
+          {ev.errores.map((e, i) => (
+            <li key={i}><del>{e.original}</del> → <ins>{e.correccion}</ins>{e.explicacion && <small> · {e.explicacion}</small>}</li>
+          ))}
+        </ul>
+      )}
+      <small className="muted">Aprueba para confirmar la nota de la IA, o escribe otra en “Puntaje corregido”.</small>
     </div>
   )
 }
