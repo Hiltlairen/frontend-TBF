@@ -34,11 +34,14 @@
 // (las 5 últimas son las que se sumaron para 15–20) y un normalizador
 // que traduce cada esquema de Gemini a la primitiva que le corresponde.
 // ============================================================
-import { useMemo, useState, useEffect, useRef } from 'react'
+import { useMemo, useState, useEffect, useRef, lazy, Suspense } from 'react'
 import { buildWordSearchGrid } from '../lib/wordsearch.js'
 import { construirLaberinto } from '../lib/wordmaze.js'
 import { generarPiezas, GLIFO_FORMA } from '../lib/sentencePuzzle.js'
 import ReproductorCancion, { versoActual } from '../components/ui/ReproductorCancion.jsx'
+// El mapa (Leaflet) solo se descarga cuando se abre una actividad 07.
+import Caminante, { direccionDe } from './Caminante.jsx'
+const MapaCiudad = lazy(() => import('./MapaCiudad.jsx'))
 import npcImg from './assets/objects/npc.png'
 import Sprite from './Sprite.jsx'
 import './ActivityRunner.css'
@@ -792,6 +795,106 @@ function LetraConHuecos({ cancion, audio, lineas, huecos, onFinish, onSalir }) {
   )
 }
 
+// ════════════════════════════════════════════════════════════
+//  PRIMITIVA 14 — Indicaciones en el mapa de La Paz (07)
+// ════════════════════════════════════════════════════════════
+// En cada esquina, 3 opciones. Modo "seguir": te dan la indicación en
+// inglés (se puede escuchar) y eliges qué entendiste. Modo "dar": el
+// mapa muestra por dónde sigue la ruta y eliges la frase en inglés que
+// le dices al conductor. Después de COMPROBAR, el auto maneja el tramo
+// (siempre por la ruta correcta) y llega a la siguiente esquina.
+const FLECHA = { izquierda: '↰', derecha: '↱', recto: '↑', llegar: '🏁' }
+
+function Direcciones({ modo = 'seguir', destino = {}, guia, intro, pasos, llegada, mapa, onFinish, onSalir }) {
+  const [i, setI] = useState(0)
+  const [elegida, setElegida] = useState(null)
+  const [revisado, setRevisado] = useState(false)
+  const [manejando, setManejando] = useState(false)
+  const [fin, setFin] = useState(false)
+  const [aciertos, setAciertos] = useState(0)
+  const [respuestas, setRespuestas] = useState([])
+  const dar = modo === 'dar'
+  const paso = pasos[i]
+  const correcta = paso?.opciones.find((o) => o.correcta)
+  const acerto = elegida?.correcta === true
+
+  // La indicación se escucha sola al llegar a cada esquina (modo seguir)
+  useEffect(() => {
+    if (!dar && paso && !manejando && !fin) hablar(paso.instruccion)
+  }, [i, dar, manejando, fin, paso])
+
+  function comprobar() {
+    setRevisado(true)
+    if (acerto) setAciertos((n) => n + 1)
+    setRespuestas((r) => [...r, { i, opcion: elegida.texto }])
+  }
+  function continuar() {
+    setRevisado(false); setElegida(null); setManejando(true)
+  }
+  function llegoTramo() {
+    setManejando(false)
+    if (i + 1 >= pasos.length) { setFin(true); if (llegada) hablar(llegada) }
+    else setI(i + 1)
+  }
+
+  return (
+    <Marco
+      top={<BarraSuperior hechos={fin ? pasos.length : i} total={pasos.length} onSalir={onSalir} />}
+      pie={
+        <Pie>
+          {fin
+            ? <BotonCTA onClick={() => onFinish(pct(aciertos, pasos.length), { items: respuestas })}>Terminar</BotonCTA>
+            : <BotonCTA disabled={!elegida || revisado || manejando} onClick={comprobar}>{manejando ? 'Manejando…' : 'Comprobar'}</BotonCTA>}
+        </Pie>
+      }
+      hoja={revisado && (
+        <HojaFeedback
+          estado={acerto ? 'ok' : 'mal'}
+          titulo={acerto ? '¡Por ahí es!' : 'Por ahí no era'}
+          significado={acerto ? null : correcta?.texto}
+          detalle={dar && !acerto ? `Mira la flecha del mapa: el auto va ${correcta?.accion === 'llegar' ? 'a llegar' : `a la ${correcta?.accion}`}.` : null}
+          onContinuar={continuar}
+          textoBoton="Manejar"
+        />
+      )}
+    >
+      <Encabezado etiqueta={dar ? 'Da indicaciones' : 'Sigue las indicaciones'} icono="🚗"
+        titulo={dar ? `Guía al conductor hasta ${destino.nombre}` : `Llega a ${destino.nombre}`} />
+      {destino.motivo && i === 0 && !manejando && <p className="ar-mapa-motivo">📍 {destino.motivo}</p>}
+
+      <Suspense fallback={<div className="mapa-ciudad mapa-cargando">Cargando el mapa de La Paz…</div>}>
+        <MapaCiudad mapa={mapa} paso={i} conducir={manejando} verRuta={dar && !manejando && !fin}
+          destino={destino} onLlego={llegoTramo} />
+      </Suspense>
+
+      {fin ? (
+        <div className="ar-globo ar-mapa-llegada">🏁 <span>{llegada ?? `You arrived at ${destino.nombre}!`}</span></div>
+      ) : (<>
+        {i === 0 && intro && <p className="ar-mapa-intro">{intro}</p>}
+        <div className="ar-escena">
+          <div className="ar-globo">
+            {!dar && <button className="ar-altavoz" onClick={() => hablar(paso.instruccion)} aria-label="Escuchar la indicación">🔊</button>}
+            <span>{guia && <strong>{guia}: </strong>}{paso.instruccion}</span>
+          </div>
+        </div>
+        <div className="ar-opciones ar-mapa-opciones" role="radiogroup" aria-label={dar ? '¿Qué le dices?' : '¿Qué entendiste?'}>
+          {paso.opciones.map((o, k) => {
+            const estado = revisado ? (o === elegida ? (o.correcta ? 'ok' : 'mal') : 'gris') : o === elegida ? 'sel' : ''
+            return (
+              <button key={k} type="button" role="radio" aria-checked={o === elegida}
+                className={`ar-opcion ${estado}`} disabled={revisado || manejando}
+                onClick={() => setElegida(o)}>
+                {!dar && <span className="ar-mapa-flecha" aria-hidden="true">{FLECHA[o.accion] ?? '•'}</span>}
+                {o.texto}
+              </button>
+            )
+          })}
+        </div>
+      </>)}
+    </Marco>
+  )
+}
+
 // ── Referencia de pronunciación (sin puntaje) ──────────────
 function Pronunciacion({ items, onFinish, onSalir }) {
   const [vistos, setVistos] = useState([])
@@ -857,11 +960,31 @@ function Laberinto({ niveles, vidasIniciales = 3, tiempoPorNivel = 40, onFinish,
   const mapa = useMemo(() => (nivel ? construirLaberinto(nivel) : null), [nivel])
   const [pos, setPos] = useState(() => mapa?.inicio ?? { fila: 0, columna: 0 })
   const [pasosRestantes, setPasosRestantes] = useState(() => mapa?.presupuestoPasos ?? 0)
+  // El personaje mira hacia donde se movió y camina mientras se desliza a la casilla.
+  const [direccion, setDireccion] = useState('abajo')
+  const [caminando, setCaminando] = useState(false)
+  const pasoTimer = useRef(null)
+  const moverRef = useRef(null)
+
+  // Flechas / WASD: un paso por tecla (además de tocar la casilla).
+  useEffect(() => {
+    const TECLAS = { ArrowUp: [-1, 0], w: [-1, 0], W: [-1, 0], ArrowDown: [1, 0], s: [1, 0], S: [1, 0],
+      ArrowLeft: [0, -1], a: [0, -1], A: [0, -1], ArrowRight: [0, 1], d: [0, 1], D: [0, 1] }
+    const alPresionar = (e) => {
+      const d = TECLAS[e.key]
+      if (!d || ['INPUT', 'TEXTAREA'].includes(e.target?.tagName)) return
+      e.preventDefault()
+      moverRef.current?.(d)
+    }
+    window.addEventListener('keydown', alPresionar)
+    return () => { window.removeEventListener('keydown', alPresionar); clearTimeout(pasoTimer.current) }
+  }, [])
 
   // Reinicia el piso cada vez que cambia de nivel
   useEffect(() => {
     if (!mapa) return
     setPos(mapa.inicio)
+    setDireccion('abajo'); setCaminando(false)
     setPasosRestantes(mapa.presupuestoPasos)
     setSiguienteObjetivo(0)
     setTiempoRestante(tiempoPorNivel)
@@ -906,6 +1029,10 @@ function Laberinto({ niveles, vidasIniciales = 3, tiempoPorNivel = 40, onFinish,
     if (!tipo || tipo === 'obstaculo') return
 
     const pasos = pasosRestantes - 1
+    setDireccion(direccionDe(fila - pos.fila, columna - pos.columna))
+    setCaminando(true)
+    clearTimeout(pasoTimer.current)
+    pasoTimer.current = setTimeout(() => setCaminando(false), 300)
     setPos({ fila, columna })
     setPasosRestantes(pasos)
 
@@ -921,6 +1048,8 @@ function Laberinto({ niveles, vidasIniciales = 3, tiempoPorNivel = 40, onFinish,
     }
     if (pasos <= 0) perderVida('Te quedaste sin pasos.')
   }
+
+  moverRef.current = ([df, dc]) => moverA(pos.fila + df, pos.columna + dc)
 
   const oracionParcial = mapa.objetivos.map((o, i) => (i < siguienteObjetivo ? o.palabra : '▢')).join(' ')
   const esUltimoPiso = nivelIdx + 1 >= niveles.length
@@ -975,11 +1104,15 @@ function Laberinto({ niveles, vidasIniciales = 3, tiempoPorNivel = 40, onFinish,
               {tipo === 'obstaculo' && <Sprite archivo="obstaculo.png" emoji="🧱" alt="obstáculo" />}
               {objetivo && <span className="lab-palabra">{objetivo.palabra}</span>}
               {distractor && <span className="lab-palabra lab-palabra-trampa">{distractor.palabra}</span>}
-              {esPersonaje && <span className="lab-personaje" role="img" aria-label="tú">🧑</span>}
             </button>
           )
         }))}
+        {/* El personaje va encima de la cuadrícula y se desliza entre casillas */}
+        <div className="lab-caminante" style={{ '--c': pos.columna, '--f': pos.fila }}>
+          <Caminante direccion={direccion} caminando={caminando} tamano="100%" fps={12} titulo="tú" />
+        </div>
       </div>
+      <p className="lab-ayuda">Toca una casilla vecina o usa las flechas del teclado.</p>
     </Marco>
   )
 }
@@ -1520,6 +1653,12 @@ function normalizar(codigo, d) {
         })),
       } }
 
+    case '07-direcciones':
+      return { tipo: 'direcciones', props: {
+        modo: d.modo, destino: d.destino ?? {}, guia: d.guia, intro: d.intro, pasos: d.pasos, llegada: d.llegada, mapa: d.mapa,
+      } }
+
+    // Formato anterior de la 07 (guía de pronunciación), de actividades ya guardadas
     case '07-pronunciacion':
       return { tipo: 'pronunciacion', props: { items: d.items } }
 
@@ -1706,6 +1845,7 @@ export default function ActivityRunner({ codigo, contenido, onFinish, onSalir })
       {tipo === 'impostor'        && <Impostor {...comun} />}
       {tipo === 'basquet'         && <Basquet {...comun} />}
       {tipo === 'cancion'         && <LetraConHuecos {...comun} />}
+      {tipo === 'direcciones'     && <Direcciones {...comun} />}
     </div>
   )
 }

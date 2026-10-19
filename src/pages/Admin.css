@@ -140,3 +140,8 @@
 /* Código externo automático en la grilla de importación */
 .cls-codigo-auto{ white-space:nowrap; }
 .cls-codigo-auto code{ font-size:.85rem; }
+
+/* Salida clara del listado de estudiantes */
+.cls-roster-pie{ justify-content:space-between; align-items:center; flex-wrap:wrap; gap:.6rem; margin-top:.8rem; }
+.cls-roster-pie .adm-btn-ok{ margin-left:auto; }
+.cls-siguiente{ margin:.3rem 0 .5rem; font-size:.85rem; }

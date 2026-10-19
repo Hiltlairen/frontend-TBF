@@ -599,3 +599,28 @@
   .cancion-rango{ grid-template-columns:1fr; }
   .modo-tabs-chicas{ grid-template-columns:1fr; }
 }
+
+/* ── Catálogo plegable por tipo de actividad ── */
+.act-grupos-acciones{ display:flex; justify-content:flex-end; margin:-.3rem 0 .5rem; }
+.act-grupos-toggle{ border:0; background:none; color:var(--accent-txt); font-weight:700; cursor:pointer; padding:.2rem .3rem; font-size:.85rem; }
+.act-grupos-toggle:hover{ text-decoration:underline; }
+.act-grupo{ border:1px solid var(--border); border-radius:var(--radius); margin-bottom:.6rem; background:var(--surface); overflow:hidden; }
+.act-grupo.abierto{ border-color:var(--accent); }
+.act-grupo-cab{
+  width:100%; display:flex; align-items:center; gap:.7rem; padding:.75rem .9rem; text-align:left;
+  border:0; background:none; color:var(--txt); cursor:pointer; font:inherit;
+}
+.act-grupo-cab:hover{ background:var(--accent-tint); }
+.act-grupo-cab:focus-visible{ outline:3px solid var(--accent); outline-offset:-3px; }
+.act-grupo-icono{ font-size:1.4rem; flex:none; }
+.act-grupo-txt{ display:flex; flex-direction:column; min-width:0; flex:1; }
+.act-grupo-txt small{ font-size:.8rem; }
+.act-grupo-n{ flex:none; white-space:nowrap; }
+.act-grupo-flecha{ flex:none; transition:transform .2s ease; color:var(--txt-muted); }
+.act-grupo.abierto .act-grupo-flecha{ transform:rotate(180deg); }
+.act-grupo > .act-grid{ padding:0 .9rem .9rem; }
+.act-resumen{ margin:.35rem 0 .2rem; font-size:.82rem; line-height:1.35; color:var(--txt-muted); text-align:left; }
+.act-dificultad{ display:block; font-size:.72rem; letter-spacing:.08em; color:var(--accent-txt); text-align:left; }
+@media (max-width: 560px){
+  .act-grupo-n{ display:none; }
+}

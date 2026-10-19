@@ -90,7 +90,7 @@
 }
 .escena-npc{ position:absolute; bottom:22%; transform:translateX(-50%); text-align:center; }
 .escena-npc-cuerpo{
-  font-size:clamp(2rem,8vw,3.2rem);
+  display:block; height:clamp(70px, 16vw, 116px); width:auto; image-rendering:pixelated;
   filter:drop-shadow(0 6px 10px rgba(0,0,0,.5));
 }
 @keyframes g-globo{
@@ -114,6 +114,7 @@
   transition:none; /* la posición la mueve el game loop */
 }
 /* La sombra no es adorno: sin ella el sprite parece flotar sobre el piso. */
+.escena-personaje .caminante{ filter:drop-shadow(0 8px 10px rgba(0,0,0,.55)); }
 .escena-personaje img{
   height:clamp(80px,18vw,128px); width:auto;
   image-rendering:pixelated;

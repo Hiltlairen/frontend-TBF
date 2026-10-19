@@ -1261,3 +1261,59 @@
 .ar-hueco.mal{ background:var(--g-bad-bg); border-bottom-color:var(--g-bad); color:var(--g-bad); text-decoration:line-through; }
 .ar-hueco-correcta{ font-family:var(--font-body); font-size:.72rem; font-weight:700; color:var(--g-ok); line-height:1.1; }
 .ar-contexto{ font-size:.85rem; color:var(--g-muted); }
+
+/* ════════ Indicaciones en el mapa (07) ════════ */
+.mapa-ciudad{
+  position:relative; height:clamp(220px, 38vh, 340px); border-radius:var(--g-r-lg); overflow:hidden;
+  border:2px solid var(--g-line); background:#e8e4da; flex:none;
+}
+.mapa-giro{
+  position:absolute; left:50%; top:50%;
+  transform:translate(-50%, -50%) rotate(calc(var(--giro) * -1));
+  transition:transform .7s var(--g-out);
+}
+.mapa-lienzo{ width:100%; height:100%; background:#e8e4da; }
+.mapa-auto{
+  position:absolute; left:50%; top:50%; transform:translate(-50%, -50%); pointer-events:none; z-index:500;
+  filter:drop-shadow(0 4px 4px rgba(0,0,0,.35));
+}
+.mapa-norte{
+  position:absolute; top:.5rem; right:.5rem; z-index:500; width:1.7rem; height:1.7rem; border-radius:50%;
+  display:grid; place-items:center; font-size:.75rem; font-weight:800; color:#b91c1c; background:#fff;
+  box-shadow:0 1px 4px rgba(0,0,0,.25); transform:rotate(calc(var(--giro) * -1)); transition:transform .7s var(--g-out);
+}
+.mapa-creditos{
+  position:absolute; bottom:.2rem; right:.4rem; z-index:500; font-size:.6rem; color:#334155;
+  background:rgba(255,255,255,.75); padding:0 .3rem; border-radius:4px;
+}
+.mapa-lugar{ background:none; border:0; }
+.mapa-lugar-etq{
+  display:inline-flex; align-items:center; gap:.2rem; white-space:nowrap; transform:translate(-50%, -50%) rotate(var(--giro));
+  transition:transform .7s var(--g-out);
+  background:#fff; color:#142843; border:1.5px solid #cbd5e1; border-radius:99px; padding:.05rem .45rem .05rem .2rem;
+  font:600 .68rem/1.4 var(--font-body, sans-serif); box-shadow:0 1px 3px rgba(0,0,0,.2); max-width:11rem; overflow:hidden; text-overflow:ellipsis;
+}
+.mapa-meta .mapa-lugar-etq{ background:#142843; color:#fff; border-color:#142843; font-weight:800; }
+.ar-mapa-motivo, .ar-mapa-intro{ margin:0; font-size:.85rem; color:var(--g-muted); }
+.ar-mapa-intro{ color:var(--g-ink); font-style:italic; }
+.ar-mapa-opciones .ar-opcion{ display:flex; align-items:center; gap:.55rem; text-align:left; }
+.ar-mapa-flecha{ flex:none; font-size:1.25rem; width:1.6rem; text-align:center; }
+.ar-mapa-llegada{ font-weight:700; }
+.mapa-cargando{ display:grid; place-items:center; color:var(--g-muted); font-size:.85rem; }
+
+/* ── Laberinto: el personaje (4 direcciones) camina sobre la cuadrícula ── */
+.lab-grid{ position:relative; }
+.lab-caminante{
+  --celda-w: calc((100% - 6px - (var(--cols) - 1) * 3px) / var(--cols));
+  --celda-h: calc((100% - 6px - (var(--filas) - 1) * 3px) / var(--filas));
+  position:absolute; pointer-events:none; z-index:2;
+  width:var(--celda-w); height:var(--celda-h);
+  left:calc(3px + var(--c) * (var(--celda-w) + 3px));
+  top:calc(3px + var(--f) * (var(--celda-h) + 3px));
+  transition:left .28s linear, top .28s linear;
+  display:flex; align-items:flex-end; justify-content:center;
+  filter:drop-shadow(0 2px 2px rgba(0,0,0,.35));
+}
+.lab-caminante .caminante{ width:92% !important; height:92% !important; }
+.lab-ayuda{ margin:.2rem 0 0; text-align:center; font-size:.72rem; color:var(--g-muted); }
+@media (prefers-reduced-motion: reduce){ .lab-caminante{ transition:none; } }

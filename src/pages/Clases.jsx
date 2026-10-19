@@ -56,6 +56,7 @@ export default function Clases() {
   const [revisando, setRevisando] = useState(false)
   const [agregando, setAgregando] = useState(false)
   const [nuevosCodigos, setNuevosCodigos] = useState(null) // últimos códigos generados, para copiar/imprimir
+  const [agregadosSesion, setAgregadosSesion] = useState(0) // estudiantes agregados desde que se abrió el listado
 
   function cargar() {
     Promise.all([api.clases.listar(), api.clases.docentes(), api.biblioteca.libros()])
@@ -115,7 +116,7 @@ export default function Clases() {
   }
 
   async function abrirRoster(c) {
-    setError(null); setNuevosCodigos(null)
+    setError(null); setNuevosCodigos(null); setAgregadosSesion(0)
     setFilasImport(filasVacias(6)); setPasoImport('editar'); setRevision(null)
     if (claseAbierta === c.id) { setClaseAbierta(null); return }
     setClaseAbierta(c.id)
@@ -123,6 +124,20 @@ export default function Clases() {
       const { estudiantes } = await api.clases.roster(c.id)
       setRoster(estudiantes)
     } catch (e) { setError(e.message) }
+  }
+
+  // Cierra el listado y vuelve a la lista de cursos, con un resumen de lo
+  // que se hizo: sin esto, después de importar no quedaba claro qué seguía.
+  function terminarRoster(c) {
+    const pendientes = pasoImport === 'revisar' || filasImport.some((f) => f.nombre.trim())
+    if (pendientes && !window.confirm('Hay nombres escritos que todavía no confirmaste. ¿Volver al listado sin agregarlos?')) return
+    setAviso(agregadosSesion > 0
+      ? `Listo: ${agregadosSesion} estudiante${agregadosSesion === 1 ? '' : 's'} agregado${agregadosSesion === 1 ? '' : 's'} a "${c.nombre}". Ya pueden entrar a las salas de esta clase con su código de matrícula.`
+      : null)
+    setError(null); setClaseAbierta(null); setNuevosCodigos(null); setAgregadosSesion(0)
+    setFilasImport(filasVacias(6)); setPasoImport('editar'); setRevision(null)
+    const reducido = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
+    window.scrollTo({ top: 0, behavior: reducido ? 'auto' : 'smooth' })
   }
 
   function actualizarFila(i, campo, valor) {
@@ -182,6 +197,7 @@ export default function Clases() {
       const filas = revision.filas.map(({ nombre }) => ({ nombre }))
       const { estudiantes } = await api.clases.agregarEstudiantes(c.id, filas)
       setNuevosCodigos(estudiantes)
+      setAgregadosSesion((n) => n + estudiantes.length)
       setFilasImport(filasVacias(6)); setPasoImport('editar'); setRevision(null)
       const { estudiantes: todos } = await api.clases.roster(c.id)
       setRoster(todos)
@@ -458,6 +474,10 @@ export default function Clases() {
                               <strong>{nuevosCodigos.length} código(s) nuevo(s)</strong>
                               <button className="adm-btn" onClick={copiarCodigos}>Copiar lista</button>
                             </div>
+                            <p className="muted cls-siguiente">
+                              Entrega a cada estudiante su código (cópialos o imprímelos). Puedes agregar más arriba
+                              o terminar aquí.
+                            </p>
                             <ul className="cls-codigos-lista">
                               {nuevosCodigos.map((e) => (
                                 <li key={e.id}>
@@ -467,6 +487,11 @@ export default function Clases() {
                                 </li>
                               ))}
                             </ul>
+                            <div className="adm-barra cls-roster-pie">
+                              <button type="button" className="adm-btn adm-btn-ok" onClick={() => terminarRoster(c)}>
+                                ✓ Finalizar y volver al listado de cursos
+                              </button>
+                            </div>
                           </div>
                         )}
 
@@ -508,6 +533,15 @@ export default function Clases() {
                               ))}
                             </tbody>
                           </table>
+                        </div>
+
+                        <div className="adm-barra cls-roster-pie">
+                          <small className="muted">
+                            {roster.filter((e) => e.activo && !e.purgado).length} estudiante(s) activos en {c.nombre}.
+                          </small>
+                          <button type="button" className="adm-btn adm-btn-ok" onClick={() => terminarRoster(c)}>
+                            ✓ Finalizar y volver al listado de cursos
+                          </button>
                         </div>
                       </div>
                     </td>

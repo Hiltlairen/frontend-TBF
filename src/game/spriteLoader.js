@@ -1,12 +1,15 @@
 // Carga automáticamente todos los cuadros de todas las carpetas de estado.
 // Estructura esperada:
-//   src/assets/sprites/<estado>/1.png, 2.png, 3.png, ...
+//   src/game/assets/sprites/<estado>/1.png, 2.png, 3.png, ...
 //
 // Para agregar un estado nuevo (ej. "saltar"), solo crea la carpeta
 // src/assets/sprites/saltar/ con sus cuadros y añádelo en gameConfig.states.
 // No hay que tocar este archivo.
 
-const modules = import.meta.glob('../assets/sprites/**/*.png', {
+// OJO: la ruta es relativa a ESTE archivo (src/game/): los cuadros viven
+// en src/game/assets/sprites. Antes decía '../assets/…' (src/assets, que no
+// existe) y el personaje salía como "sin sprites".
+const modules = import.meta.glob('./assets/sprites/**/*.png', {
   eager: true,
   query: '?url',
   import: 'default',

@@ -78,6 +78,8 @@ export default function CreateActivityPage() {
   const [leccionesSel, setLeccionesSel] = useState([])
   const [catalogo, setCatalogo] = useState([])
   const [franjas, setFranjas] = useState([])
+  const [tipos, setTipos] = useState([])          // catálogo agrupado por tipo de actividad
+  const [abiertos, setAbiertos] = useState([])    // tipos desplegados
   const [cantidades, setCantidades] = useState({}) // { codigo: n }
   // Configuración propia de algunas actividades: { '05-redaccion': { escenario, tipoTexto }, '10-canciones': { cancion } }
   const [extras, setExtras] = useState({})
@@ -109,8 +111,8 @@ export default function CreateActivityPage() {
     // El servidor ya manda el catálogo ordenado de menor a mayor dificultad,
     // y agrupado en franjas (Básico → Experto) — ver GET /catalogo.
     api.actividades.catalogo()
-      .then(({ catalogo, franjas, ia, tiposTexto }) => {
-        setCatalogo(catalogo); setFranjas(franjas ?? []); setTiposTexto(tiposTexto ?? {}); if (ia) setIa(ia)
+      .then(({ catalogo, franjas, tipos, ia, tiposTexto }) => {
+        setCatalogo(catalogo); setFranjas(franjas ?? []); setTipos(tipos ?? []); setTiposTexto(tiposTexto ?? {}); if (ia) setIa(ia)
       })
       .catch((e) => setError(e.message))
     api.actividades.escenarios().then(({ escenarios }) => setEscenarios(escenarios ?? [])).catch(() => {})
@@ -317,6 +319,17 @@ export default function CreateActivityPage() {
       .filter((f) => f.actividades.length > 0)
   }, [catalogo, franjas])
 
+  // Grupos plegables: por tipo de actividad (Vocabulario, Gramática…). Si
+  // el servidor no los manda, se usan las franjas de dificultad.
+  const grupos = useMemo(() => (tipos.length
+    ? tipos
+    : franjasVista.map((f) => ({ id: `d${f.dificultad}`, etiqueta: f.etiqueta, icono: '●'.repeat(f.dificultad), descripcion: null, actividades: f.actividades }))),
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  [tipos, franjas, catalogo])
+  const alternarGrupo = (id) => setAbiertos((a) => (a.includes(id) ? a.filter((x) => x !== id) : [...a, id]))
+  const todosAbiertos = grupos.length > 0 && grupos.every((g) => abiertos.includes(g.id))
+
+
   // El nivel ya no lo elige el docente: lo fija el libro (1A→A1, 1B→A2).
   const libroSel = useMemo(() => libros.find((b) => b.id === libroId) ?? null, [libros, libroId])
   const catPorCodigo = useMemo(() => Object.fromEntries(catalogo.map((a) => [a.codigo, a])), [catalogo])
@@ -470,20 +483,35 @@ export default function CreateActivityPage() {
               <span className={`badge ${listo ? 'badge-ok' : 'badge-warn'}`}>{codigosSel.length} elegida(s)</span>
             </div>
 
-          {/* El catálogo se pinta en 5 franjas de dificultad creciente
-              (Básico → Experto), en vez de una sola grilla plana: así se ve
-              de un vistazo qué actividades conviene poner al principio de
-              una aventura y cuáles cerca del final. */}
-          {franjasVista.map((f) => (
-            <div key={f.dificultad} className="act-franja">
-              <div className="act-franja-titulo">
-                <span title="Dificultad">{'●'.repeat(f.dificultad)}{'○'.repeat(5 - f.dificultad)}</span>
-                <strong>{f.etiqueta}</strong>
-                <small className="muted">{f.actividades.length} actividad{f.actividades.length === 1 ? '' : 'es'}</small>
-              </div>
+          {/* El catálogo va plegado por TIPO de actividad: el docente abre
+              solo los que le interesan en vez de ver las 20 a la vez. Dentro
+              de cada tipo, de más fácil a más difícil (los puntos ●○ de cada
+              tarjeta). */}
+          <div className="act-grupos-acciones">
+            <button type="button" className="act-grupos-toggle" onClick={() => setAbiertos(todosAbiertos ? [] : grupos.map((g) => g.id))}>
+              {todosAbiertos ? 'Plegar todos' : 'Desplegar todos'}
+            </button>
+          </div>
+          {grupos.map((g) => {
+            const abierto = abiertos.includes(g.id)
+            const elegidasGrupo = g.actividades.filter((a) => codigosSel.includes(a.codigo)).length
+            return (
+            <div key={g.id} className={`act-grupo ${abierto ? 'abierto' : ''}`}>
+              <button type="button" className="act-grupo-cab" onClick={() => alternarGrupo(g.id)}
+                aria-expanded={abierto} aria-controls={`grupo-${g.id}`}>
+                <span className="act-grupo-icono" aria-hidden="true">{g.icono}</span>
+                <span className="act-grupo-txt">
+                  <strong>{g.etiqueta}</strong>
+                  {g.descripcion && <small className="muted">{g.descripcion}</small>}
+                </span>
+                {elegidasGrupo > 0 && <span className="badge badge-ok">{elegidasGrupo} elegida{elegidasGrupo === 1 ? '' : 's'}</span>}
+                <small className="muted act-grupo-n">{g.actividades.length} actividad{g.actividades.length === 1 ? '' : 'es'}</small>
+                <span className="act-grupo-flecha" aria-hidden="true">▾</span>
+              </button>
 
-              <div className="act-grid">
-                {f.actividades.map((a) => {
+              {abierto && (
+              <div className="act-grid" id={`grupo-${g.id}`}>
+                {g.actividades.map((a) => {
                   const sel = codigosSel.includes(a.codigo)
                   const preg = a.preguntas
                   const bloqueada = sinIA && a.requiereIA
@@ -498,6 +526,10 @@ export default function CreateActivityPage() {
                           {a.nuevo && <span className="badge badge-warn">nueva</span>}
                         </div>
                         <code className="act-codigo">{a.codigo}</code>
+                        {a.resumen && <p className="act-resumen">{a.resumen}</p>}
+                        <span className="act-dificultad" title={`Dificultad ${a.dificultad} de 5`}>
+                          {'●'.repeat(a.dificultad)}{'○'.repeat(5 - a.dificultad)}
+                        </span>
                         <div className="act-marcas">
                           <span title="Escenario">📍 {a.escenarioResuelto?.nombre ?? a.escenario}</span>
                           <span title="Interacción">{ICONO_INTERACCION[a.interaccion] ?? a.interaccion}</span>
@@ -508,6 +540,7 @@ export default function CreateActivityPage() {
                           </small>
                         )}
                         {a.requiereCancion && <small className="act-con-vocab">🎵 eliges la canción · sin IA</small>}
+                        {a.requiereMapa && <small className="act-con-vocab">🗺️ mapa real de La Paz</small>}
                         {bloqueada && <small className="act-sin-ia">🔒 necesita IA</small>}
                         {sinIA && !a.requiereIA && <small className="act-con-vocab">✓ funciona sin IA</small>}
                       </button>
@@ -541,8 +574,10 @@ export default function CreateActivityPage() {
                   )
                 })}
               </div>
+              )}
             </div>
-          ))}
+            )
+          })}
 
           {modo === 'aventura' && codigosSel.includes(REDACCION) && (
             <p className="muted" style={{ marginTop: '.7rem' }}>
