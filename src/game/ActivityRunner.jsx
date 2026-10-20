@@ -164,7 +164,26 @@ function HojaFeedback({ estado, titulo, significado, detalle, onContinuar, texto
 // nuevo: la pregunta siguiente entra deslizándose. Es puramente visual —
 // el estado de la actividad vive en el componente de la primitiva, no acá,
 // así que remontar este <div> no reinicia nada.
-function Marco({ top, children, pie, hoja, clave }) {
+// `escenario` (opcional) es el elemento visual dominante de la actividad
+// (el mapa, el tablero). Con él, `cabecera` (título) va aparte y el marco
+// usa el layout de escenario:
+//   · celular: cabecera (≤15 %) · escenario (flex, ~55–60 %) · cuerpo (contexto
+//     y opciones, ≤30 %) · pie fijo con el botón.
+//   · ancho (≥ 860 px de contenedor): escenario a la izquierda (60–65 %) y a la
+//     derecha cabecera + cuerpo + pie (máx. 420 px). Ver "IDENTIDAD" en el CSS.
+function Marco({ top, children, pie, hoja, clave, cabecera, escenario }) {
+  if (escenario) {
+    return (
+      <div className={`ar-shell con-escenario ${hoja ? 'con-hoja' : ''}`}>
+        {top}
+        {cabecera && <div className="ar-cabecera">{cabecera}</div>}
+        <div className="ar-escenario">{escenario}</div>
+        <div className="ar-cuerpo" key={clave}>{children}</div>
+        {pie}
+        {hoja}
+      </div>
+    )
+  }
   return (
     <div className={`ar-shell ${hoja ? 'con-hoja' : ''}`}>
       {top}
@@ -805,6 +824,16 @@ function LetraConHuecos({ cancion, audio, lineas, huecos, onFinish, onSalir }) {
 // (siempre por la ruta correcta) y llega a la siguiente esquina.
 const FLECHA = { izquierda: '↰', derecha: '↱', recto: '↑', llegar: '🏁' }
 
+/** La indicación de la esquina (o la pregunta del conductor), con audio en modo "seguir". */
+function IndicacionMapa({ dar, guia, texto }) {
+  return (
+    <div className="ar-globo ar-indicacion">
+      {!dar && <button className="ar-altavoz" onClick={() => hablar(texto)} aria-label="Escuchar la indicación">🔊</button>}
+      <span>{guia && <strong>{guia}: </strong>}{texto}</span>
+    </div>
+  )
+}
+
 function Direcciones({ modo = 'seguir', destino = {}, guia, intro, pasos, llegada, mapa, onFinish, onSalir }) {
   const [i, setI] = useState(0)
   const [elegida, setElegida] = useState(null)
@@ -857,25 +886,33 @@ function Direcciones({ modo = 'seguir', destino = {}, guia, intro, pasos, llegad
           textoBoton="Manejar"
         />
       )}
+      cabecera={<>
+        <Encabezado etiqueta={dar ? 'Da indicaciones' : 'Sigue las indicaciones'} icono="🚗"
+          titulo={dar ? `Guía al conductor hasta ${destino.nombre}` : `Llega a ${destino.nombre}`} />
+        {destino.motivo && <p className="ar-mapa-motivo">{destino.motivo}</p>}
+      </>}
+      escenario={<>
+        <Suspense fallback={<div className="mapa-ciudad mapa-cargando">Cargando el mapa de La Paz…</div>}>
+          <MapaCiudad mapa={mapa} paso={i} conducir={manejando} verRuta={dar && !manejando && !fin}
+            destino={destino} onLlego={llegoTramo} />
+        </Suspense>
+        {/* En el celular la indicación flota sobre el mapa (tarjeta de vidrio) y
+            deja la zona de abajo para las opciones; en ancho va en el panel. */}
+        {!fin && paso && (
+          <div className="ar-mapa-flotante" aria-hidden={manejando}>
+            <IndicacionMapa dar={dar} guia={guia} texto={paso.instruccion} />
+            {i === 0 && destino.motivo && <p className="ar-mapa-motivo-chip">{destino.motivo}</p>}
+          </div>
+        )}
+      </>}
     >
-      <Encabezado etiqueta={dar ? 'Da indicaciones' : 'Sigue las indicaciones'} icono="🚗"
-        titulo={dar ? `Guía al conductor hasta ${destino.nombre}` : `Llega a ${destino.nombre}`} />
-      {destino.motivo && i === 0 && !manejando && <p className="ar-mapa-motivo">📍 {destino.motivo}</p>}
-
-      <Suspense fallback={<div className="mapa-ciudad mapa-cargando">Cargando el mapa de La Paz…</div>}>
-        <MapaCiudad mapa={mapa} paso={i} conducir={manejando} verRuta={dar && !manejando && !fin}
-          destino={destino} onLlego={llegoTramo} />
-      </Suspense>
 
       {fin ? (
         <div className="ar-globo ar-mapa-llegada">🏁 <span>{llegada ?? `You arrived at ${destino.nombre}!`}</span></div>
       ) : (<>
         {i === 0 && intro && <p className="ar-mapa-intro">{intro}</p>}
-        <div className="ar-escena">
-          <div className="ar-globo">
-            {!dar && <button className="ar-altavoz" onClick={() => hablar(paso.instruccion)} aria-label="Escuchar la indicación">🔊</button>}
-            <span>{guia && <strong>{guia}: </strong>}{paso.instruccion}</span>
-          </div>
+        <div className="ar-mapa-en-panel">
+          <IndicacionMapa dar={dar} guia={guia} texto={paso.instruccion} />
         </div>
         <div className="ar-opciones ar-mapa-opciones" role="radiogroup" aria-label={dar ? '¿Qué le dices?' : '¿Qué entendiste?'}>
           {paso.opciones.map((o, k) => {
@@ -1075,19 +1112,8 @@ function Laberinto({ niveles, vidasIniciales = 3, tiempoPorNivel = 40, onFinish,
           onContinuar={() => (fase === 'fin' ? terminarConPuntaje([...pisos, false]) : avanzarNivel(fase === 'piso_ok'))}
         />
       )}
-    >
-      <Encabezado etiqueta={`Piso ${nivelIdx + 1} de ${niveles.length}`} icono="🗼" titulo="Recorre la oración en orden" />
-
-      <div className="lab-hud">
-        <span className="lab-hud-item" title="Vidas">
-          {'❤️'.repeat(Math.max(0, vidas))}{'🖤'.repeat(Math.max(0, vidasIniciales - vidas))}
-        </span>
-        <span className="lab-hud-item" title="Pasos restantes">👣 {Math.max(0, pasosRestantes)}</span>
-        <span className={`lab-hud-item ${tiempoRestante <= 10 ? 'urgente' : ''}`} title="Tiempo restante">⏱ {tiempoRestante}s</span>
-      </div>
-
-      <p className="lab-oracion">{oracionParcial}<span className="lab-traduccion"> — {nivel.traduccion}</span></p>
-
+      cabecera={<Encabezado etiqueta={`Piso ${nivelIdx + 1} de ${niveles.length}`} icono="🗼" titulo="Recorre la oración en orden" />}
+      escenario={
       <div className="lab-grid" style={{
         gridTemplateColumns: `repeat(${mapa.columnas}, 1fr)`,
         '--cols': mapa.columnas, '--filas': mapa.tipos.length,
@@ -1112,6 +1138,18 @@ function Laberinto({ niveles, vidasIniciales = 3, tiempoPorNivel = 40, onFinish,
           <Caminante direccion={direccion} caminando={caminando} tamano="100%" fps={12} titulo="tú" />
         </div>
       </div>
+      }
+    >
+      <div className="lab-hud">
+        <span className="lab-hud-item" title="Vidas">
+          {'❤️'.repeat(Math.max(0, vidas))}{'🖤'.repeat(Math.max(0, vidasIniciales - vidas))}
+        </span>
+        <span className="lab-hud-item" title="Pasos restantes">👣 {Math.max(0, pasosRestantes)}</span>
+        <span className={`lab-hud-item ${tiempoRestante <= 10 ? 'urgente' : ''}`} title="Tiempo restante">⏱ {tiempoRestante}s</span>
+      </div>
+
+      <p className="lab-oracion">{oracionParcial}<span className="lab-traduccion"> — {nivel.traduccion}</span></p>
+
       <p className="lab-ayuda">Toca una casilla vecina o usa las flechas del teclado.</p>
     </Marco>
   )

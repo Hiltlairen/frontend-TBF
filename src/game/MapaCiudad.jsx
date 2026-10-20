@@ -170,12 +170,13 @@ export default function MapaCiudad({ mapa, paso = 0, conducir = false, verRuta =
       </div>
       <div className="mapa-auto" aria-hidden="true">
         <svg viewBox="0 0 40 64" width="34" height="54">
-          <rect x="4" y="4" width="32" height="56" rx="11" fill="#b45309" stroke="#7c2d12" strokeWidth="2.5" />
-          <rect x="9" y="13" width="22" height="12" rx="3" fill="#e0f2fe" />
-          <rect x="9" y="40" width="22" height="9" rx="3" fill="#bae6fd" />
+          {/* Grafito con cristales claros: se distingue del mapa y de la ruta azul sin gritar. */}
+          <rect x="4" y="4" width="32" height="56" rx="11" fill="#1f2937" stroke="#0b0f17" strokeWidth="2" />
+          <rect x="9" y="13" width="22" height="12" rx="3" fill="#dbeafe" />
+          <rect x="9" y="40" width="22" height="9" rx="3" fill="#bfdbfe" />
           <rect x="1" y="16" width="4" height="9" rx="2" fill="#1f2937" /><rect x="35" y="16" width="4" height="9" rx="2" fill="#1f2937" />
           <rect x="1" y="41" width="4" height="9" rx="2" fill="#1f2937" /><rect x="35" y="41" width="4" height="9" rx="2" fill="#1f2937" />
-          <circle cx="11" cy="6" r="2.4" fill="#fde68a" /><circle cx="29" cy="6" r="2.4" fill="#fde68a" />
+          <circle cx="11" cy="6" r="2.4" fill="#fdba8c" /><circle cx="29" cy="6" r="2.4" fill="#fdba8c" />
         </svg>
       </div>
       <span className="mapa-norte" aria-hidden="true" title="Norte">N</span>

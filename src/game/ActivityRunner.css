@@ -41,44 +41,64 @@
    ════════════════════════════════════════════════════════════ */
 .ar-raiz,
 .ar-shell{
-  /* Radios */
-  --g-r-sm: 10px;
-  --g-r-md: 14px;
+  /* ── IDENTIDAD 2026 · sistema de diseño de las actividades ──────────
+     Premium y calmado: fondo casi blanco, texto casi negro, un solo azul
+     profundo para lo interactivo y un coral suave y controlado para los
+     acentos (badge). Nada satura: el mapa o el tablero son lo que manda. */
+
+  /* Tipografía: Inter / SF Pro (sans geométrica limpia) */
+  --font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Segoe UI', system-ui, sans-serif;
+  --font-head: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+
+  /* Radios: tarjetas 16–20, botones 14–16 */
+  --g-r-sm: 12px;
+  --g-r-md: 16px;
   --g-r-lg: 20px;
 
-  /* Profundidad: la "pata" inferior de los botones. El color de esa
-     pata lo pone cada estado; éste es el neutro por defecto. */
-  --g-depth: 4px;
-  --g-depth-press: 2px;
-  --g-edge: #cbd5e1;
+  /* Sin "pata" 3D: profundidad con sombras suaves, no con bordes gruesos. */
+  --g-depth: 1px;
+  --g-depth-press: 1px;
+  --g-edge: #E5E7EB;
 
-  /* Curvas y duraciones: una sola familia de movimiento para que todo
-     se sienta de la misma app. --g-spring sobrepasa un poco (rebote). */
+  /* Movimiento (sin cambios) */
   --g-fast: .12s;
   --g-base: .24s;
   --g-slow: .4s;
   --g-spring: cubic-bezier(.34,1.56,.64,1);
   --g-out: cubic-bezier(.22,1,.36,1);
 
-  /* Estados del juego (valores claros, siempre) */
-  --g-ink: #142843;
-  --g-muted: #64748b;
-  --g-line: #e2e8f0;
-  --g-surface: #ffffff;
-  --g-page: #f4f6f9;
-  --g-brand: #b45309;
-  --g-brand-hi: #d97706;
-  --g-brand-edge: #92400e;
+  /* Base */
+  --g-page: #F8F9FB;        /* fondo general */
+  --g-surface: #FFFFFF;     /* tarjetas */
+  --g-ink: #111827;         /* texto principal */
+  --g-muted: #6B7280;       /* texto secundario */
+  --g-line: #E5E7EB;        /* bordes y divisores */
 
-  /* Por estado: color de texto/borde, relleno suave, y la PATA (un tono
-     más oscuro, para que el borde inferior se lea como sombra y no como
-     un borde más). */
-  --g-ok: #15803d;   --g-ok-bg: #dcfce7;   --g-ok-pata: #166534;
-  --g-bad: #b91c1c;  --g-bad-bg: #fee2e2;  --g-bad-pata: #7f1d1d;
-  --g-sel: #b45309;  --g-sel-bg: #fff7ed;
-  --g-sel-borde: #f59e0b;  --g-sel-pata: #c2410c;
+  /* Acento principal: azul profundo (botón, foco, selección) */
+  --g-brand: #2563EB;
+  --g-brand-hi: #3B82F6;    /* hover */
+  --g-brand-edge: #1D4ED8;  /* presionado / texto sobre azul claro */
 
-  --g-sheet: 0 -10px 34px rgba(11,18,32,.16);
+  /* Acento secundario: coral suave (badge, highlights) */
+  --g-acento: #E8846B;
+  --g-acento-bg: #FDF1EC;
+  --g-acento-txt: #B4532F;  /* coral legible sobre su fondo (4.9:1) */
+
+  /* Estados: tonos suaves de fondo, texto con contraste AA */
+  --g-ok: #15803D;   --g-ok-bg: #ECFDF3;   --g-ok-pata: #BBF7D0;
+  --g-bad: #B91C1C;  --g-bad-bg: #FEF2F2;  --g-bad-pata: #FECACA;
+  --g-sel: #1D4ED8;  --g-sel-bg: #EFF4FF;
+  --g-sel-borde: #2563EB;  --g-sel-pata: #93C5FD;
+
+  /* Vidrio (glassmorphism sutil) */
+  --g-glass: rgba(255,255,255,.78);
+  --g-glass-borde: rgba(17,24,39,.08);
+  --g-blur: saturate(160%) blur(16px);
+
+  /* Sombras */
+  --g-sombra: 0 1px 2px rgba(17,24,39,.04), 0 8px 24px rgba(17,24,39,.06);
+  --g-sombra-alta: 0 24px 60px rgba(17,24,39,.16);
+  --g-sheet: 0 -12px 40px rgba(17,24,39,.12);
 }
 
 /* ════════════════════════════════════════════════════════════
@@ -1317,3 +1337,315 @@
 .lab-caminante .caminante{ width:92% !important; height:92% !important; }
 .lab-ayuda{ margin:.2rem 0 0; text-align:center; font-size:.72rem; color:var(--g-muted); }
 @media (prefers-reduced-motion: reduce){ .lab-caminante{ transition:none; } }
+
+/* ════════════════════════════════════════════════════════════
+   IDENTIDAD 2026 · COMPONENTES Y LAYOUT
+   ------------------------------------------------------------
+   Va al FINAL a propósito: redefine el aspecto de todo lo anterior
+   (mismas clases, misma lógica) con el sistema de arriba:
+     · superficies blancas, bordes de 1px, sombras suaves;
+     · vidrio sutil (fondo 0.78 + blur + borde 1px) en botones, pie,
+       hoja de resultado y controles flotantes;
+     · Inter, títulos 28–32px (celular) / 36–40px (ancho);
+     · layout de ESCENARIO (mapa / tablero dominante) que pasa a dos
+       columnas cuando el contenedor es ancho — container queries, así
+       funciona igual dentro del celular o de la ventana de escritorio.
+   ════════════════════════════════════════════════════════════ */
+
+.ar-raiz{ container:ar / inline-size; background:var(--g-page); }
+.ar-raiz, .ar-shell{ -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }
+.ar-shell{ background:var(--g-page); letter-spacing:-.005em; }
+
+/* ── Barra superior: discreta ── */
+.ar-raiz .ar-top{ padding:.8rem 1.25rem .35rem; gap:.25rem; }
+.ar-raiz .ar-x{
+  width:36px; height:36px; border-radius:12px; font-size:.95rem; color:var(--g-muted);
+  background:var(--g-glass); border:1px solid var(--g-glass-borde);
+  -webkit-backdrop-filter:var(--g-blur); backdrop-filter:var(--g-blur);
+}
+.ar-raiz .ar-x:hover:not(:disabled){ background:var(--g-surface); color:var(--g-ink); }
+.ar-raiz .ar-barra{ height:6px; background:#E9EBEF; box-shadow:none; }
+.ar-raiz .ar-barra span{ background:var(--g-brand); box-shadow:none; }
+.ar-raiz .ar-barra span::after{ display:none; }
+.ar-raiz .ar-energia{ font-size:.85rem; font-weight:600; color:var(--g-muted); gap:.2rem; }
+.ar-raiz .ar-rayo{ background:none; box-shadow:none; padding:0; color:var(--g-acento); font-size:.85rem; }
+.ar-raiz .ar-combo{ color:var(--g-brand); font-weight:600; letter-spacing:.06em; }
+
+/* Instrucción corta y cintillos (sobre el marco) */
+.ar-raiz .ar-instrucciones{
+  background:transparent; border:0; text-align:left; color:var(--g-ink); opacity:.72;
+  font-size:.875rem; padding:.7rem 1.25rem 0;
+}
+.ar-raiz .ar-cintillo{
+  background:var(--g-glass); color:var(--g-ink); font-weight:500;
+  border-bottom:1px solid var(--g-line);
+  -webkit-backdrop-filter:var(--g-blur); backdrop-filter:var(--g-blur);
+}
+.ar-raiz .ar-cintillo-btn{ background:var(--g-surface); color:var(--g-brand); font-weight:600; }
+
+/* ── Cuerpo ── */
+.ar-raiz .ar-cuerpo{ padding:.6rem 1.25rem 1.5rem; gap:1.1rem; }
+
+/* Encabezado: badge chico + título limpio */
+.ar-raiz .ar-encabezado{ gap:.55rem; }
+.ar-raiz .ar-eyebrow{
+  align-self:flex-start; gap:.35rem; padding:.22rem .65rem .22rem .3rem;
+  font-size:.6875rem; font-weight:600; letter-spacing:.06em;
+  color:var(--g-acento-txt); background:var(--g-acento-bg); border-radius:999px;
+}
+.ar-raiz .ar-eyebrow i{
+  width:20px; height:20px; border-radius:50%; font-size:.7rem;
+  background:var(--g-surface); color:inherit; box-shadow:none;
+}
+.ar-raiz .ar-titulo{
+  font-family:var(--font-head); font-weight:600; letter-spacing:-.022em; line-height:1.15;
+  font-size:clamp(1.75rem, 1.45rem + 1.4vw, 2rem);   /* 28–32px */
+  color:var(--g-ink);
+}
+.ar-raiz .ar-enunciado{ font-weight:500; letter-spacing:-.01em; }
+.ar-raiz .ar-pista, .ar-raiz .ar-hablante, .ar-raiz .ar-contador{ color:var(--g-ink); opacity:.7; }
+
+/* Globo de diálogo: tarjeta de vidrio */
+.ar-raiz .ar-globo{
+  border:1px solid var(--g-glass-borde); border-radius:18px; background:var(--g-glass);
+  -webkit-backdrop-filter:var(--g-blur); backdrop-filter:var(--g-blur);
+  box-shadow:var(--g-sombra); font-size:1.02rem; padding:.85rem 1rem; line-height:1.45;
+}
+.ar-raiz .ar-escena .ar-globo::before{ border-right-color:rgba(17,24,39,.1); }
+.ar-raiz .ar-escena .ar-globo::after{ border-right-color:#fff; }
+.ar-raiz .ar-altavoz{ background:var(--g-sel-bg); color:var(--g-brand); }
+.ar-raiz .ar-altavoz:hover{ background:#E0EAFF; }
+.ar-raiz .ar-personaje{ filter:drop-shadow(0 8px 14px rgba(17,24,39,.12)); }
+
+/* Chat */
+.ar-raiz .ar-burbuja{ border:1px solid var(--g-line); box-shadow:var(--g-sombra); }
+.ar-raiz .ar-burbuja.ar-mia{ background:var(--g-brand); box-shadow:0 6px 16px rgba(37,99,235,.18); }
+
+/* Paneles */
+.ar-raiz .ar-panel{ border:1px solid var(--g-line); border-radius:18px; box-shadow:var(--g-sombra); }
+.ar-raiz .ar-panel-fila.activa{ font-weight:600; background:var(--g-sel-bg); border-left-color:var(--g-brand); }
+
+/* ── Controles: tarjetas planas de 1px, sombra suave ── */
+.ar-raiz .ar-opcion,
+.ar-raiz .ar-ficha,
+.ar-raiz .ar-celda,
+.ar-raiz .ar-elegidos li button{
+  border:1px solid var(--g-line); border-bottom-width:1px;
+  background:var(--g-surface); box-shadow:var(--g-sombra);
+  font-weight:500; color:var(--g-ink); letter-spacing:-.005em;
+  transition:transform var(--g-fast) ease, border-color var(--g-fast) ease,
+             background var(--g-fast) ease, box-shadow var(--g-fast) ease, color var(--g-fast) ease;
+}
+.ar-raiz .ar-opcion{ min-height:52px; border-radius:16px; padding:.8rem 1.1rem; }
+.ar-raiz .ar-ficha, .ar-raiz .ar-celda{ border-radius:14px; }
+.ar-raiz .ar-opcion:hover:not(:disabled),
+.ar-raiz .ar-ficha:hover:not(:disabled),
+.ar-raiz .ar-celda:hover:not(:disabled){
+  border-color:#CBD5E1; transform:translateY(-1px);
+  box-shadow:0 1px 2px rgba(17,24,39,.05), 0 12px 28px rgba(17,24,39,.08);
+}
+.ar-raiz .ar-opcion:active:not(:disabled),
+.ar-raiz .ar-ficha:active,
+.ar-raiz .ar-celda:active:not(:disabled){ transform:scale(.985); border-bottom-width:1px; }
+.ar-raiz .ar-opcion.sel, .ar-raiz .ar-celda.sel{
+  border-color:var(--g-brand); background:var(--g-sel-bg); color:var(--g-sel); font-weight:600;
+  box-shadow:0 0 0 3px rgba(37,99,235,.14);
+}
+.ar-raiz .ar-opcion.ok{ border-color:#86EFAC; background:var(--g-ok-bg); color:var(--g-ok); font-weight:600; box-shadow:0 0 0 3px rgba(21,128,61,.10); }
+.ar-raiz .ar-opcion.mal{ border-color:#FCA5A5; background:var(--g-bad-bg); color:var(--g-bad); font-weight:600; box-shadow:0 0 0 3px rgba(185,28,28,.08); }
+.ar-raiz .ar-opcion.gris{ opacity:.45; filter:none; box-shadow:none; }
+.ar-raiz .ar-opcion:focus-visible, .ar-raiz .ar-ficha:focus-visible, .ar-raiz .ar-celda:focus-visible,
+.ar-raiz .ar-x:focus-visible, .ar-raiz .ar-altavoz:focus-visible, .ar-raiz .ar-enlace:focus-visible{
+  outline:2px solid var(--g-brand); outline-offset:2px;
+}
+.ar-raiz .ar-input{ font-weight:500; }
+.ar-raiz .ar-input:focus{ border-bottom-color:var(--g-brand); }
+.ar-raiz .ar-textarea{ border:1px solid var(--g-line); border-radius:16px; box-shadow:var(--g-sombra); }
+.ar-raiz .ar-textarea:focus{ border-color:var(--g-brand); box-shadow:0 0 0 3px rgba(37,99,235,.14); }
+.ar-raiz .ar-aviso{ color:var(--g-ink); background:var(--g-sel-bg); border-left-color:var(--g-brand); font-weight:500; }
+
+/* ── Pie: vidrio, siempre visible (fuera del scroll) ── */
+.ar-raiz .ar-pie{
+  background:var(--g-glass); border-top:1px solid var(--g-glass-borde);
+  -webkit-backdrop-filter:var(--g-blur); backdrop-filter:var(--g-blur);
+  padding:.8rem 1.25rem calc(.8rem + env(safe-area-inset-bottom,0px));
+}
+/* Botón principal: vidrio azul, 50px, radio 16 */
+.ar-raiz .ar-cta{
+  min-height:50px; border-radius:16px;
+  background:rgba(37,99,235,.88); color:#fff;
+  border:1px solid rgba(255,255,255,.28);
+  -webkit-backdrop-filter:var(--g-blur); backdrop-filter:var(--g-blur);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22), 0 8px 22px rgba(37,99,235,.24);
+  font-family:var(--font-body); font-weight:600; font-size:1rem;
+  letter-spacing:.005em; text-transform:none;
+}
+.ar-raiz .ar-cta:hover:not(:disabled){ background:rgba(59,130,246,.92); }
+.ar-raiz .ar-cta:active:not(:disabled){ transform:scale(.985); box-shadow:inset 0 1px 0 rgba(255,255,255,.2), 0 3px 10px rgba(37,99,235,.22); }
+.ar-raiz .ar-cta:focus-visible{ outline:2px solid var(--g-brand); outline-offset:3px; }
+.ar-raiz .ar-cta:disabled{
+  background:rgba(255,255,255,.72); color:var(--g-muted);
+  border:1px solid var(--g-line); box-shadow:none;
+}
+.ar-raiz .ar-cta.ok{ background:rgba(21,128,61,.9); box-shadow:inset 0 1px 0 rgba(255,255,255,.2), 0 8px 22px rgba(21,128,61,.2); }
+.ar-raiz .ar-cta.mal{ background:rgba(185,28,28,.9); box-shadow:inset 0 1px 0 rgba(255,255,255,.2), 0 8px 22px rgba(185,28,28,.18); }
+.ar-raiz .ar-enlace{ text-transform:none; letter-spacing:0; font-weight:500; font-size:.875rem; }
+
+/* ── Hoja de resultado: tarjeta de vidrio flotante ── */
+.ar-raiz .ar-hoja,
+.ar-raiz .ar-hoja.ok,
+.ar-raiz .ar-hoja.mal{
+  left:.75rem; right:.75rem; bottom:.75rem; border-radius:20px;
+  background:rgba(255,255,255,.88); color:var(--g-ink);
+  border:1px solid var(--g-glass-borde);
+  -webkit-backdrop-filter:var(--g-blur); backdrop-filter:var(--g-blur);
+  box-shadow:var(--g-sombra-alta);
+  padding:1.1rem 1.15rem calc(1.1rem + env(safe-area-inset-bottom,0px));
+}
+.ar-raiz .ar-hoja-titulo{ font-family:var(--font-head); font-weight:600; font-size:1.15rem; letter-spacing:-.015em; }
+.ar-raiz .ar-hoja.ok .ar-hoja-titulo{ color:var(--g-ok); }
+.ar-raiz .ar-hoja.mal .ar-hoja-titulo{ color:var(--g-bad); }
+.ar-raiz .ar-hoja-icono{ width:28px; height:28px; font-size:.85rem; box-shadow:none; }
+.ar-raiz .ar-hoja.ok .ar-hoja-icono{ background:var(--g-ok); }
+.ar-raiz .ar-hoja.mal .ar-hoja-icono{ background:var(--g-bad); }
+.ar-raiz .ar-hoja-bloque{ background:var(--g-page); border:1px solid var(--g-line); border-radius:14px; }
+.ar-raiz .ar-hoja-bloque strong{ font-weight:600; letter-spacing:.04em; }
+.ar-raiz .ar-hoja-bloque p{ font-weight:500; color:var(--g-ink); }
+.ar-raiz .ar-hoja-nota{ color:var(--g-ink); opacity:.72; }
+
+/* ── Laberinto, canción y mapa con el nuevo sistema ── */
+.ar-raiz .lab-hud-item{ background:var(--g-surface); border:1px solid var(--g-line); box-shadow:var(--g-sombra); font-weight:600; }
+.ar-raiz .lab-oracion{ background:var(--g-surface); border:1px solid var(--g-line); border-left:3px solid var(--g-brand); font-weight:600; box-shadow:var(--g-sombra); }
+.ar-raiz .lab-grid{ background:#EEF0F4; border-radius:16px; }
+.ar-raiz .lab-celda{ border-radius:10px; font-weight:600; }
+.ar-raiz .lab-celda.con-personaje{ box-shadow:inset 0 0 0 2px var(--g-brand); }
+.ar-raiz .ar-hueco{ background:var(--g-sel-bg); border-bottom-color:var(--g-brand); }
+.ar-raiz .ar-letra li.sonando{ background:var(--g-sel-bg); border-left-color:var(--g-brand); }
+.ar-raiz .mapa-lugar-etq{ font-family:var(--font-body); font-weight:500; border:1px solid var(--g-line); box-shadow:0 2px 8px rgba(17,24,39,.12); }
+.ar-raiz .mapa-meta .mapa-lugar-etq{ background:var(--g-ink); border-color:var(--g-ink); font-weight:600; }
+.ar-raiz .mapa-norte{
+  color:var(--g-acento-txt); background:var(--g-glass); border:1px solid var(--g-glass-borde);
+  -webkit-backdrop-filter:var(--g-blur); backdrop-filter:var(--g-blur); box-shadow:none;
+}
+.ar-raiz .ar-mapa-motivo{ color:var(--g-ink); opacity:.72; font-size:.9rem; line-height:1.4; }
+.ar-raiz .ar-mapa-intro{ color:var(--g-ink); opacity:.78; font-style:normal; font-size:.9rem; }
+.ar-raiz .ar-mapa-opciones .ar-opcion{ text-align:left; }
+.ar-raiz .ar-mapa-flecha{ color:var(--g-brand); }
+
+/* ════════════════════════════════════════════════════════════
+   LAYOUT DE ESCENARIO (Marco con `escenario`: mapa 07, laberinto 15)
+   ════════════════════════════════════════════════════════════ */
+
+/* Celular: cabecera compacta · escenario flexible (dominante) · cuerpo
+   acotado (contexto + opciones, con scroll propio si no cabe) · pie fijo. */
+.ar-shell.con-escenario{ display:flex; flex-direction:column; }
+.con-escenario > .ar-cabecera{
+  flex-shrink:0; padding:.2rem 1.25rem .75rem;
+  display:flex; flex-direction:column; gap:.4rem; max-height:22%; overflow:hidden;
+}
+.con-escenario > .ar-cabecera .ar-titulo{
+  display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;
+}
+.con-escenario > .ar-cabecera .ar-mapa-motivo{
+  margin:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:none;
+}
+.con-escenario > .ar-escenario{
+  /* Crece con todo el alto libre; 300px garantizados aunque el marco
+     no tenga un alto definido. */
+  position:relative; flex:1 1 auto; min-height:240px;
+  margin:0 1rem; border-radius:20px; overflow:hidden;
+  background:var(--g-surface); border:1px solid var(--g-line); box-shadow:var(--g-sombra);
+  container-type:size;
+}
+.con-escenario > .ar-cuerpo{
+  /* Las opciones nunca se cortan: el cuerpo toma su alto y el mapa, el resto. */
+  flex:0 0 auto; max-height:42%; padding:.7rem 1.25rem .8rem; gap:.5rem;
+}
+/* La instrucción genérica de arriba repite el título: fuera, el mapa gana alto. */
+.ar-raiz:has(> .ar-shell.con-escenario) > .ar-instrucciones{ display:none; }
+.con-escenario .ar-cuerpo .ar-opciones{ gap:.45rem; }
+.con-escenario .ar-cuerpo .ar-opcion{ min-height:44px; padding:.5rem .95rem; font-size:.9rem; line-height:1.28; }
+/* Indicación compacta: el altavoz va en la misma línea y sin pico (no hay personaje al lado) */
+.con-escenario .ar-cuerpo .ar-escena{ display:block; }
+.con-escenario .ar-cuerpo .ar-globo{ flex-wrap:nowrap; align-items:center; padding:.6rem .8rem; font-size:.95rem; gap:.6rem; }
+.con-escenario .ar-cuerpo .ar-globo::before,
+.con-escenario .ar-cuerpo .ar-globo::after{ display:none; }
+.con-escenario .ar-cuerpo .ar-altavoz{ min-width:34px; min-height:34px; font-size:.95rem; }
+.con-escenario .ar-cuerpo .ar-mapa-intro{ display:none; }   /* en el celular no hay sitio: solo en ancho */
+
+/* Indicación flotante sobre el mapa (solo celular) */
+.ar-mapa-flotante{
+  position:absolute; left:.6rem; right:.6rem; top:.6rem; z-index:600;
+  transition:opacity var(--g-base) ease, transform var(--g-base) var(--g-out);
+}
+.ar-mapa-flotante[aria-hidden="true"]{ opacity:0; transform:translateY(-6px); pointer-events:none; }
+.ar-mapa-flotante .ar-indicacion{
+  background:rgba(255,255,255,.82); padding:.6rem .75rem; font-size:.92rem; gap:.55rem;
+  flex-wrap:nowrap; box-shadow:0 8px 24px rgba(17,24,39,.14);
+}
+.ar-mapa-flotante .ar-altavoz{ min-width:34px; min-height:34px; font-size:.9rem; }
+.con-escenario .ar-mapa-en-panel{ display:none; }
+.ar-mapa-motivo-chip{
+  display:inline-block; margin:.4rem 0 0; padding:.25rem .6rem; border-radius:999px;
+  font-size:.75rem; color:var(--g-ink); background:rgba(255,255,255,.78);
+  border:1px solid var(--g-glass-borde); -webkit-backdrop-filter:var(--g-blur); backdrop-filter:var(--g-blur);
+}
+/* La brújula baja para no quedar tapada por la tarjeta */
+.ar-escenario .mapa-norte{ top:auto; bottom:1.6rem; }
+
+/* Laberinto: contadores en fila y la oración a todo el ancho del panel
+   (anula el acomodo anterior de escritorio, cuando el tablero vivía en el cuerpo). */
+.ar-shell.con-escenario > .ar-cuerpo > .lab-hud{ flex-direction:row; align-items:center; justify-content:flex-start; flex-wrap:wrap; }
+.ar-shell.con-escenario > .ar-cuerpo > .lab-oracion{ align-self:stretch; grid-column:auto; grid-row:auto; }
+
+/* El mapa llena el escenario */
+.ar-escenario .mapa-ciudad{ height:100%; border:0; border-radius:0; }
+.ar-escenario .mapa-cargando{ height:100%; }
+
+/* El tablero del laberinto entra completo, por alto o por ancho */
+.ar-escenario:has(.lab-grid){ display:grid; place-items:center; background:var(--g-page); }
+.ar-escenario .lab-grid{
+  width:min(calc(100cqw - 24px), calc((100cqh - 24px) * var(--cols) / var(--filas)));
+}
+/* El texto crece con el tablero (unidades del escenario) */
+.ar-escenario .lab-celda{ font-size:clamp(.72rem, 2.2cqmin, 1.15rem); }
+.ar-raiz .lab-obstaculo{ background:#DDE1E7; }
+
+/* Ancho (≥ 860px de contenedor): dos columnas, sin apilar.
+   Escenario a la izquierda (60–65 %), panel a la derecha (35–40 %, máx. 420px). */
+@container ar (min-width: 860px){
+  .ar-raiz .ar-titulo{ font-size:clamp(2.25rem, 1.6rem + 1vw, 2.5rem); }   /* 36–40px */
+
+  .ar-shell.con-escenario{
+    display:grid;
+    grid-template-columns:minmax(0, 1fr) minmax(340px, min(420px, 38%));
+    grid-template-rows:auto auto minmax(0, 1fr) auto;
+  }
+  .ar-shell.con-escenario > .ar-escenario{
+    grid-column:1; grid-row:1 / -1; min-height:0; margin:1.25rem 0 1.25rem 1.25rem;
+  }
+  .ar-shell.con-escenario > .ar-top{ grid-column:2; grid-row:1; width:auto; max-width:none; margin:0; padding:1.25rem 1.5rem .5rem; }
+  .ar-shell.con-escenario > .ar-cabecera{ grid-column:2; grid-row:2; max-height:none; padding:.75rem 1.5rem 1rem; gap:.6rem; }
+  .ar-shell.con-escenario > .ar-cabecera .ar-mapa-motivo{ white-space:normal; }
+  .ar-shell.con-escenario > .ar-cuerpo{ grid-column:2; grid-row:3; max-height:none; padding:.5rem 1.5rem 1.25rem; gap:.9rem; }
+  .ar-shell.con-escenario > .ar-pie{
+    grid-column:2; grid-row:4; flex-direction:column; align-items:stretch; padding:1rem 1.5rem 1.25rem;
+    background:transparent; border-top:0; -webkit-backdrop-filter:none; backdrop-filter:none;
+  }
+  .ar-shell.con-escenario .ar-cta{ width:100%; }
+  .ar-shell.con-escenario .ar-opciones{ display:flex; flex-direction:column; }
+  .ar-shell.con-escenario .ar-cuerpo .ar-opcion{ min-height:52px; font-size:1rem; padding:.8rem 1.1rem; }
+  .ar-shell.con-escenario .ar-cuerpo .ar-globo{ font-size:1.05rem; padding:.9rem 1.05rem; }
+  .ar-shell.con-escenario .ar-cuerpo .ar-altavoz{ min-width:40px; min-height:40px; }
+  .ar-shell.con-escenario .ar-cuerpo .ar-mapa-intro{ display:block; }
+  /* En ancho la indicación vuelve al panel derecho */
+  .ar-shell.con-escenario .ar-mapa-flotante{ display:none; }
+  .ar-shell.con-escenario .ar-mapa-en-panel{ display:block; }
+  .ar-shell.con-escenario > .ar-cabecera .ar-mapa-motivo{ display:block; }
+  /* La hoja de resultado cubre solo el panel derecho, no el mapa */
+  .ar-shell.con-escenario > .ar-hoja{ grid-column:2; grid-row:1 / -1; width:auto; margin:0; left:1rem; right:1rem; bottom:1rem; }
+}
+
+@media (prefers-reduced-motion: reduce){
+  .ar-raiz .ar-opcion:hover:not(:disabled), .ar-raiz .ar-ficha:hover:not(:disabled), .ar-raiz .ar-celda:hover:not(:disabled){ transform:none; }
+}
