@@ -1649,3 +1649,15 @@
 @media (prefers-reduced-motion: reduce){
   .ar-raiz .ar-opcion:hover:not(:disabled), .ar-raiz .ar-ficha:hover:not(:disabled), .ar-raiz .ar-celda:hover:not(:disabled){ transform:none; }
 }
+
+/* Indicaciones (07) sin botón: aviso de intento / errores bajo las opciones */
+.ar-mapa-aviso{ margin:0; min-height:1.2em; text-align:center; font-size:.82rem; color:var(--g-ink); opacity:.65; }
+.ar-mapa-aviso.ok{ color:var(--g-ok); opacity:1; font-weight:600; }
+.ar-mapa-aviso.mal{ color:var(--g-bad); opacity:1; font-weight:600; }
+/* Una opción ya descartada no se apaga del todo: se ve que se intentó */
+.ar-raiz .ar-mapa-opciones .ar-opcion.mal:disabled{ opacity:1; cursor:not-allowed; }
+
+/* Fotos de Picsum (Sprite remoto): nítidas, recortadas y con fondo mientras cargan */
+.spr-foto{ image-rendering:auto; object-fit:cover; border-radius:10px; background:#E5E7EB; }
+.ar-celda-img.spr-foto, .imp-img.spr-foto{ object-fit:cover; }
+.imp-palabra{ font-size:.72rem; font-weight:500; color:var(--g-muted); line-height:1.1; }

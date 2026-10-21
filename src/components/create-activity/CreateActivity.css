@@ -624,3 +624,26 @@
 @media (max-width: 560px){
   .act-grupo-n{ display:none; }
 }
+
+/* ── Canción: elegir las palabras a ocultar ── */
+.cancion-modos button{ display:flex; flex-direction:column; align-items:flex-start; gap:.15rem; text-align:left; }
+.cancion-modos small{ font-size:.75rem; color:var(--txt-muted); font-weight:400; }
+.cancion-guia{ margin:.6rem 0; padding:.65rem .8rem; border-radius:var(--radius-sm); background:var(--accent-tint); font-size:.88rem; line-height:1.45; }
+.cancion-guia p{ margin:0 0 .4rem; }
+.cancion-guia-aviso{ background:var(--warn-bg); color:var(--txt); border-left:3px solid var(--warn-txt); }
+.cancion-guia-ok{ background:var(--green-bg, #dcfce7); color:var(--txt); border-left:3px solid var(--ok); }
+.cancion-encontradas{ list-style:none; padding:0; margin:0 0 .35rem; display:flex; flex-wrap:wrap; gap:.35rem; }
+.cancion-encontradas li{ background:var(--surface); border:1px solid var(--border); border-radius:999px; padding:.1rem .6rem; font-weight:600; font-size:.82rem; }
+.cancion-seleccion-cab{ display:flex; justify-content:space-between; align-items:center; gap:.5rem; margin:.4rem 0; font-size:.9rem; }
+.btn-chico{ padding:.25rem .7rem; font-size:.8rem; min-height:32px; }
+.letra-seleccion{ margin:0; padding:.6rem .6rem .6rem 2.4rem; max-height:380px; overflow:auto; line-height:2.05;
+  font-family:var(--font-lyric, serif); border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface); }
+.letra-seleccion li::marker{ color:var(--txt-muted); font-size:.75rem; font-family:var(--font-body); }
+.palabra-letra{
+  font:inherit; color:inherit; background:none; border:1px solid transparent; border-radius:6px;
+  padding:0 2px; margin:0 -3px; cursor:pointer; line-height:1.5;   /* sin aire extra entre palabras */
+  transition:background .12s ease, border-color .12s ease, color .12s ease;
+}
+.palabra-letra:hover{ background:var(--accent-tint); border-color:var(--border); }
+.palabra-letra:focus-visible{ outline:2px solid var(--accent); outline-offset:1px; }
+.palabra-letra.elegida{ background:#2563eb; color:#fff; border-color:#1d4ed8; font-weight:600; }

@@ -635,7 +635,7 @@ export default function CreateActivityPage() {
 
           {modo === 'aventura' && vistaPrevia && <RoutePreview datos={vistaPrevia} />}
         <Continuar listo={pasoListo[3]} onClick={() => ir(4)}
-          falta={faltaCancion ? 'Elige la canción y el enlace del audio'
+          falta={faltaCancion ? 'Elige la canción, el enlace del audio y al menos una palabra para ocultar'
             : modo === 'simple' ? 'Elige una actividad' : `Elige al menos ${MINIMO_AVENTURA} actividades`} />
       </Paso>
 

@@ -47,7 +47,16 @@ import Sprite from './Sprite.jsx'
 import './ActivityRunner.css'
 
 const pct = (ok, total) => (total ? Math.round((ok / total) * 100) : 0)
-const barajar = (a) => [...a].sort(() => Math.random() - 0.5)
+// Fisher–Yates: cada orden es igual de probable. (El truco de sort con
+// Math.random() está sesgado y dejaba la correcta casi siempre en su lugar.)
+function barajar(lista = []) {
+  const a = [...lista]
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[a[i], a[j]] = [a[j], a[i]]
+  }
+  return a
+}
 
 // ── Texto a voz del navegador (actividades de escucha) ─────
 function hablar(texto, lang = 'en-US', velocidad = 0.9) {
@@ -387,7 +396,7 @@ function CeldaContenido({ item }) {
   if (item?.tipo === 'imagen') {
     return (
       <span className="ar-celda-media">
-        <Sprite archivo={item.contenido} alt={item.alt ?? ''} emoji="🖼️" className="ar-celda-img" />
+        <Sprite archivo={item.contenido} alt={item.alt ?? ''} emoji="🖼️" className="ar-celda-img" ancho={192} alto={144} />
         {item.alt && <small>{item.alt}</small>}
       </span>
     )
@@ -835,55 +844,75 @@ function IndicacionMapa({ dar, guia, texto }) {
 }
 
 function Direcciones({ modo = 'seguir', destino = {}, guia, intro, pasos, llegada, mapa, onFinish, onSalir }) {
+  // Sin botón "Comprobar": tocar una opción ya es responder.
+  //   · Correcta → se marca en verde y el auto maneja solo.
+  //   · 1er error → esa opción queda en rojo, suma un error y queda un intento.
+  //   · 2do error → se muestra cuál era la correcta y se sigue al próximo tramo.
   const [i, setI] = useState(0)
-  const [elegida, setElegida] = useState(null)
-  const [revisado, setRevisado] = useState(false)
+  const [fallidas, setFallidas] = useState([])     // textos equivocados en esta esquina
+  const [resuelto, setResuelto] = useState(null)   // null | 'ok' | 'revelado'
   const [manejando, setManejando] = useState(false)
   const [fin, setFin] = useState(false)
   const [aciertos, setAciertos] = useState(0)
-  const [respuestas, setRespuestas] = useState([])
+  const [errores, setErrores] = useState(0)
+  const [respuestas, setRespuestas] = useState([]) // [{ i, elegidas: [texto, …] }] — el servidor recalifica
+  const temporizador = useRef(null)
   const dar = modo === 'dar'
   const paso = pasos[i]
   const correcta = paso?.opciones.find((o) => o.correcta)
-  const acerto = elegida?.correcta === true
+  const MAX_INTENTOS = 2
+
+  useEffect(() => () => clearTimeout(temporizador.current), [])
 
   // La indicación se escucha sola al llegar a cada esquina (modo seguir)
   useEffect(() => {
     if (!dar && paso && !manejando && !fin) hablar(paso.instruccion)
   }, [i, dar, manejando, fin, paso])
 
-  function comprobar() {
-    setRevisado(true)
-    if (acerto) setAciertos((n) => n + 1)
-    setRespuestas((r) => [...r, { i, opcion: elegida.texto }])
-  }
-  function continuar() {
-    setRevisado(false); setElegida(null); setManejando(true)
+  function elegir(o) {
+    if (resuelto || manejando || fallidas.includes(o.texto)) return
+    if (o.correcta) {
+      setResuelto('ok')
+      setAciertos((n) => n + 1)
+      setRespuestas((r) => [...r, { i, elegidas: [...fallidas, o.texto] }])
+      temporizador.current = setTimeout(() => setManejando(true), 650)
+      return
+    }
+    const nuevas = [...fallidas, o.texto]
+    setFallidas(nuevas)
+    setErrores((n) => n + 1)
+    if (nuevas.length >= MAX_INTENTOS) {
+      setResuelto('revelado')
+      setRespuestas((r) => [...r, { i, elegidas: nuevas }])
+    }
   }
   function llegoTramo() {
-    setManejando(false)
+    setManejando(false); setResuelto(null); setFallidas([])
     if (i + 1 >= pasos.length) { setFin(true); if (llegada) hablar(llegada) }
     else setI(i + 1)
   }
+  const aviso = resuelto === 'ok' ? '¡Por ahí es!'
+    : fallidas.length === 1 && !resuelto ? 'No es por ahí. Te queda un intento.'
+      : null
 
   return (
     <Marco
       top={<BarraSuperior hechos={fin ? pasos.length : i} total={pasos.length} onSalir={onSalir} />}
-      pie={
+      // Sin pie mientras se juega (más espacio para el mapa); solo al llegar.
+      pie={fin && (
         <Pie>
-          {fin
-            ? <BotonCTA onClick={() => onFinish(pct(aciertos, pasos.length), { items: respuestas })}>Terminar</BotonCTA>
-            : <BotonCTA disabled={!elegida || revisado || manejando} onClick={comprobar}>{manejando ? 'Manejando…' : 'Comprobar'}</BotonCTA>}
+          {/* Misma cuenta que el servidor (penalización 10 → 1 punto por error); la nota oficial la calcula él */}
+          <BotonCTA onClick={() => onFinish(Math.max(0, pct(aciertos, pasos.length) - errores), { items: respuestas })}>Terminar</BotonCTA>
         </Pie>
-      }
-      hoja={revisado && (
+      )}
+      hoja={resuelto === 'revelado' && !manejando && (
         <HojaFeedback
-          estado={acerto ? 'ok' : 'mal'}
-          titulo={acerto ? '¡Por ahí es!' : 'Por ahí no era'}
-          significado={acerto ? null : correcta?.texto}
-          detalle={dar && !acerto ? `Mira la flecha del mapa: el auto va ${correcta?.accion === 'llegar' ? 'a llegar' : `a la ${correcta?.accion}`}.` : null}
-          onContinuar={continuar}
-          textoBoton="Manejar"
+          estado="mal"
+          titulo="Por ahí no era"
+          significado={correcta?.texto}
+          detalle={dar ? `Mira la ruta azul del mapa: el auto va ${correcta?.accion === 'llegar' ? 'a llegar' : `a la ${correcta?.accion}`}.` : 'Escucha con atención la indicación de la próxima esquina.'}
+          onContinuar={() => setManejando(true)}
+          textoBoton="Seguir"
         />
       )}
       cabecera={<>
@@ -914,19 +943,26 @@ function Direcciones({ modo = 'seguir', destino = {}, guia, intro, pasos, llegad
         <div className="ar-mapa-en-panel">
           <IndicacionMapa dar={dar} guia={guia} texto={paso.instruccion} />
         </div>
-        <div className="ar-opciones ar-mapa-opciones" role="radiogroup" aria-label={dar ? '¿Qué le dices?' : '¿Qué entendiste?'}>
+        <div className="ar-opciones ar-mapa-opciones" role="group" aria-label={dar ? '¿Qué le dices?' : '¿Qué entendiste?'}>
           {paso.opciones.map((o, k) => {
-            const estado = revisado ? (o === elegida ? (o.correcta ? 'ok' : 'mal') : 'gris') : o === elegida ? 'sel' : ''
+            const fallo = fallidas.includes(o.texto)
+            const estado = fallo ? 'mal'
+              : resuelto && o.correcta ? 'ok'
+                : resuelto ? 'gris' : ''
             return (
-              <button key={k} type="button" role="radio" aria-checked={o === elegida}
-                className={`ar-opcion ${estado}`} disabled={revisado || manejando}
-                onClick={() => setElegida(o)}>
+              <button key={k} type="button"
+                className={`ar-opcion ${estado}`} disabled={Boolean(resuelto) || manejando || fallo}
+                aria-label={fallo ? `${o.texto} (incorrecta)` : undefined}
+                onClick={() => elegir(o)}>
                 {!dar && <span className="ar-mapa-flecha" aria-hidden="true">{FLECHA[o.accion] ?? '•'}</span>}
                 {o.texto}
               </button>
             )
           })}
         </div>
+        <p className={`ar-mapa-aviso ${resuelto === 'ok' ? 'ok' : aviso ? 'mal' : ''}`} role="status" aria-live="polite">
+          {aviso ?? (errores > 0 ? `Errores: ${errores}` : dar ? 'Toca lo que le dirías al conductor.' : 'Toca la opción que entendiste.')}
+        </p>
       </>)}
     </Marco>
   )
@@ -1127,7 +1163,7 @@ function Laberinto({ niveles, vidasIniciales = 3, tiempoPorNivel = 40, onFinish,
             <button key={`${r}-${c}`} type="button"
               className={`lab-celda lab-${tipo} ${esPersonaje ? 'con-personaje' : ''} ${hallado ? 'hallado' : ''}`}
               disabled={fase !== 'jugando'} onClick={() => moverA(r, c)}>
-              {tipo === 'obstaculo' && <Sprite archivo="obstaculo.png" emoji="🧱" alt="obstáculo" />}
+              {tipo === 'obstaculo' && <Sprite archivo="obstaculo.png" emoji="🧱" alt="obstáculo" remoto={false} />}
               {objetivo && <span className="lab-palabra">{objetivo.palabra}</span>}
               {distractor && <span className="lab-palabra lab-palabra-trampa">{distractor.palabra}</span>}
             </button>
@@ -1309,7 +1345,7 @@ function ArmarEscenario({ escenarioInterior, objetos, onFinish, onSalir }) {
       <Encabezado etiqueta="Escenografía" icono="🏠" titulo={`Arma: ${escenarioInterior?.nombre ?? 'la escena'}`} />
 
       <div className="ae-escena">
-        <Sprite archivo={escenarioInterior?.imagen} emoji="🏠" className="ae-fondo" alt={escenarioInterior?.nombre} />
+        <Sprite archivo={escenarioInterior?.imagen} emoji="🏠" className="ae-fondo" alt={escenarioInterior?.nombre} ancho={800} alto={300} />
         <div className="ae-zonas">
           {/* La tarjeta de cada zona ya NO es un solo <button> gigante:
               adentro también hay chips clickeables para "devolver" un
@@ -1329,7 +1365,7 @@ function ArmarEscenario({ escenarioInterior, objetos, onFinish, onSalir }) {
                 {objetosEnZona(z.id).map((o) => (
                   <button key={o.id} type="button" className="ae-chip" onClick={() => recoger(o.id)} disabled={comprobado != null}
                     aria-label={`Quitar ${o.nombre} de ${z.nombre}`}>
-                    <Sprite archivo={o.imagen} emoji="📦" alt={o.nombre} />{o.nombre}
+                    <Sprite archivo={o.imagen} emoji="📦" alt={o.nombre} ancho={96} alto={96} />{o.nombre}
                   </button>
                 ))}
               </span>
@@ -1344,7 +1380,7 @@ function ArmarEscenario({ escenarioInterior, objetos, onFinish, onSalir }) {
               {objetosEnZona(ZONA_DESCARTE).map((o) => (
                 <button key={o.id} type="button" className="ae-chip" onClick={() => recoger(o.id)} disabled={comprobado != null}
                   aria-label={`Quitar ${o.nombre} de "No pertenece aquí"`}>
-                  <Sprite archivo={o.imagen} emoji="📦" alt={o.nombre} />{o.nombre}
+                  <Sprite archivo={o.imagen} emoji="📦" alt={o.nombre} ancho={96} alto={96} />{o.nombre}
                 </button>
               ))}
             </span>
@@ -1358,7 +1394,7 @@ function ArmarEscenario({ escenarioInterior, objetos, onFinish, onSalir }) {
         {pendientes.map((o) => (
           <button key={o.id} type="button" className={`ae-objeto ${seleccionado === o.id ? 'sel' : ''}`}
             onClick={() => setSeleccionado(o.id)}>
-            <Sprite archivo={o.imagen} emoji="📦" alt={o.nombre} />
+            <Sprite archivo={o.imagen} emoji="📦" alt={o.nombre} ancho={96} alto={96} />
             <small>{o.nombre}</small>
           </button>
         ))}
@@ -1424,7 +1460,10 @@ function Impostor({ rondas, onFinish, onSalir }) {
           return (
             <button key={t.id} type="button" className={`imp-tarjeta ${estado}`}
               onClick={() => elegir(t)} disabled={Boolean(veredicto)}>
-              <Sprite archivo={t.imagen} emoji="🖼️" alt={t.palabra_en} className="imp-img" />
+              <Sprite archivo={t.imagen} emoji="🖼️" alt={t.palabra_en} className="imp-img" ancho={128} alto={96} />
+              {/* La palabra en inglés va escrita: la foto puede no representarla
+                  (Picsum da fotos al azar), y sin ella no se sabe qué traducción está mal. */}
+              {t.palabra_en && <small className="imp-palabra">{t.palabra_en}</small>}
               <span>{t.traduccion_mostrada}</span>
             </button>
           )
@@ -1634,7 +1673,7 @@ function normalizar(codigo, d) {
         if (t.tipo === 'opciones') {
           items.push({
             enunciado: t.plantilla.replace('{blank}', '_____'),
-            opciones: t.opciones, hasta: contexto.length,
+            opciones: barajar(t.opciones), hasta: contexto.length,
           })
           contexto.push({ hablante: 'You', texto: t.plantilla.replace('{blank}', '…'), mio: true })
         } else {
@@ -1655,7 +1694,7 @@ function normalizar(codigo, d) {
       for (const t of d.conversacion) {
         if (t.tipo === 'pregunta') {
           const q = preguntas[t.pregunta_id]
-          if (q) items.push({ enunciado: '¿Qué respondes?', opciones: q.opciones, hasta: contexto.length })
+          if (q) items.push({ enunciado: '¿Qué respondes?', opciones: barajar(q.opciones), hasta: contexto.length })
         } else {
           contexto.push({ hablante: t.hablante, texto: t.texto })
         }
@@ -1693,7 +1732,8 @@ function normalizar(codigo, d) {
 
     case '07-direcciones':
       return { tipo: 'direcciones', props: {
-        modo: d.modo, destino: d.destino ?? {}, guia: d.guia, intro: d.intro, pasos: d.pasos, llegada: d.llegada, mapa: d.mapa,
+        modo: d.modo, destino: d.destino ?? {}, guia: d.guia, intro: d.intro, llegada: d.llegada, mapa: d.mapa,
+        pasos: (d.pasos ?? []).map((p) => ({ ...p, opciones: barajar(p.opciones ?? []) })),
       } }
 
     // Formato anterior de la 07 (guía de pronunciación), de actividades ya guardadas
@@ -1717,7 +1757,7 @@ function normalizar(codigo, d) {
     case '09-describir':
       return { tipo: 'quiz', props: {
         formato: 'chat', etiqueta: 'Describe', icono: '🖼️', titulo: null,
-        items: d.items.map((it) => ({ enunciado: it.contenido, opciones: it.opciones })),
+        items: d.items.map((it) => ({ enunciado: it.contenido, opciones: barajar(it.opciones) })),
         penalizacion: pen,
       } }
 
@@ -1757,7 +1797,7 @@ function normalizar(codigo, d) {
       const items = []
       for (const t of d.turnos) {
         if (t.tipo === 'opciones') {
-          items.push({ enunciado: '¿Qué dices?', opciones: t.opciones, hasta: contexto.length })
+          items.push({ enunciado: '¿Qué dices?', opciones: barajar(t.opciones), hasta: contexto.length })
           contexto.push({ hablante: 'You', texto: '…', mio: true })
         } else {
           contexto.push({ hablante: t.hablante === 'caller' ? (d.llamante?.nombre ?? 'Caller') : t.hablante, texto: t.texto })
@@ -1776,7 +1816,7 @@ function normalizar(codigo, d) {
         anuncio: d.anuncio,
         formato: 'panel', etiqueta: 'Escucha', icono: '🔊',
         titulo: 'Escucha y responde',
-        items: d.preguntas.map((q) => ({ enunciado: q.texto, opciones: q.opciones })),
+        items: d.preguntas.map((q) => ({ enunciado: q.texto, opciones: barajar(q.opciones) })),
         penalizacion: pen,
       } }
 

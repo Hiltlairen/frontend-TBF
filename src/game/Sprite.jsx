@@ -1,30 +1,50 @@
 // ============================================================
-// Sprite.jsx — <img> con respaldo honesto cuando falta el arte
+// Sprite.jsx — Imagen de una actividad a partir de su NOMBRE
 // ============================================================
-// Se usa en las actividades 15 a 19 para "objetos" (palabra, pieza
-// de rompecabezas, ítem de escenario, tarjeta de imagen) que hoy no
-// tienen PNG todavía. En vez de romper el build con un import a un
-// archivo que no existe, busca el nombre en assetManifest.js y, si
-// no lo encuentra, dibuja un marcador (emoji + texto) — el mismo
-// criterio que ya usa el proyecto en SceneStage.jsx (PROPS_ESCENARIO)
-// y en scenes.js (`fondo: null`).
+// Las actividades (lo que genera la IA) solo traen un nombre de imagen,
+// p. ej. "apple.png" o "kitchen". De dónde sale la imagen, en orden:
 //
-// Cuando llegue el arte real: se copia el PNG con el mismo nombre
-// dentro de web/src/game/assets/objects (o /scenes, /puzzle) y este
-// componente empieza a mostrarlo solo, sin tocar nada más.
+//   1. Un archivo propio con ese nombre en web/src/game/assets/objects
+//      (o /scenes, /puzzle) — ver assetManifest.js. Si existe, manda.
+//   2. Picsum Photos con el nombre como semilla (lib/imagenes.js): no se
+//      guarda nada en el servidor ni en la base de datos, y la misma
+//      semilla da siempre la misma foto. OJO: es una foto al azar, no
+//      una foto de la palabra. `remoto={false}` lo desactiva (p. ej. para
+//      piezas de juego como el obstáculo del laberinto).
+//   3. Un marcador (emoji) si no hay nombre o la foto no carga (sin internet).
+//
+// `ancho` / `alto` son los px de la foto que se pide (el tamaño en pantalla
+// lo sigue fijando el CSS de cada actividad); se pide el doble para retina.
 // ============================================================
+import { useState } from 'react'
 import { spriteUrl } from './assetManifest'
+import { getImageUrl } from '../lib/imagenes.js'
 
-export default function Sprite({ archivo, alt = '', emoji = '❔', className = '', style, redondo = false }) {
-  const url = spriteUrl(archivo)
+export default function Sprite({
+  archivo, alt = '', emoji = '❔', className = '', style, redondo = false,
+  remoto = true, ancho = 160, alto = 120,
+}) {
+  const [fallo, setFallo] = useState(false)
+  const local = spriteUrl(archivo)
+  const radio = redondo ? '50%' : undefined
 
-  if (url) {
+  if (local) {
+    return (
+      <img src={local} alt={alt || archivo || ''} className={`spr-img ${className}`} style={{ ...style, borderRadius: radio }} />
+    )
+  }
+
+  if (archivo && remoto && !fallo) {
     return (
       <img
-        src={url}
-        alt={alt || archivo || ''}
-        className={`spr-img ${className}`}
-        style={{ ...style, borderRadius: redondo ? '50%' : undefined }}
+        src={getImageUrl(archivo, ancho, alto)}
+        srcSet={`${getImageUrl(archivo, ancho, alto)} 1x, ${getImageUrl(archivo, ancho * 2, alto * 2)} 2x`}
+        alt={alt || archivo}
+        loading="lazy"
+        decoding="async"
+        onError={() => setFallo(true)}
+        className={`spr-img spr-foto ${className}`}
+        style={{ ...style, borderRadius: radio }}
       />
     )
   }
